@@ -25,9 +25,9 @@ Build steps 12 (login), 14 (plans; only its limits part is kept) and 15 (payment
 
 ## Milestone 1 — Memory (step 9.2)
 
-- [ ] Unit test: two turns on one thread with `InMemorySaver`; the second model call sees the first turn
-- [ ] Try a multi-turn chat in Studio on one thread, and read its trace
-- [ ] Add `session_id` and `channel` to the run metadata
+- [x] Unit test: two turns on one thread with `InMemorySaver`; the second model call sees the first turn (plus: the next guest starts empty)
+- [x] Try a multi-turn chat on one thread, and read its trace (through the dev server's API; Rozi tried Studio)
+- [x] Add `session_id` and `channel` to the run metadata (`Context.channel`; on the model call)
 
 ## Milestone 2 — Reply contract (step 9.3, part 1)
 

@@ -138,7 +138,9 @@ Runtime context, given per run and not stored in the thread:
 ```python
 @dataclass
 class Context:
-    # None means the current Bali time; evals pass a fixed time
+    # Where the run comes from: "studio", "kiosk", "eval" or "test" (built)
+    channel: str = "studio"
+    # None means the current Bali time; evals pass a fixed time (milestone 3)
     now: datetime | None = None
 ```
 
