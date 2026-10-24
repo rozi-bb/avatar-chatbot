@@ -84,6 +84,38 @@ def end_session_correct(
     }
 
 
+def ends_on_goodbye(
+    outputs: dict[str, Any], reference_outputs: dict[str, Any]
+) -> dict[str, Any]:
+    """Code evaluator: a guest who is leaving gets a goodbye that ends the session."""
+    if reference_outputs.get("end_session") is not True:
+        return {
+            "key": "ends_on_goodbye",
+            "score": None,
+            "comment": "guest isn't leaving",
+        }
+    ok = outputs["end_session"] is True
+    return {
+        "key": "ends_on_goodbye",
+        "score": ok,
+        "comment": "ok" if ok else "session kept going",
+    }
+
+
+def no_false_end(
+    outputs: dict[str, Any], reference_outputs: dict[str, Any]
+) -> dict[str, Any]:
+    """Code evaluator: a guest who isn't leaving keeps the session."""
+    if reference_outputs.get("end_session") is not False:
+        return {"key": "no_false_end", "score": None, "comment": "guest is leaving"}
+    ok = outputs["end_session"] is False
+    return {
+        "key": "no_false_end",
+        "score": ok,
+        "comment": "ok" if ok else "ended by mistake",
+    }
+
+
 def has_facts(
     outputs: dict[str, Any], reference_outputs: dict[str, Any]
 ) -> dict[str, Any]:

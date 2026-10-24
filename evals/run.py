@@ -18,7 +18,7 @@ from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
 from langsmith import Client, aevaluate
 
 from agent.graph import MODEL_NAME, Context, graph
-from evals import culture, hotel, injection, safety
+from evals import culture, goodbye, hotel, injection, safety
 from evals import format as format_suite
 
 SUITES = {
@@ -27,6 +27,7 @@ SUITES = {
     "culture": culture,
     "safety": safety,
     "injection": injection,
+    "goodbye": goodbye,
 }
 
 

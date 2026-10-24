@@ -58,9 +58,10 @@ Build steps 12 (login), 14 (plans; only its limits part is kept) and 15 (payment
 
 ## Milestone 5 — Ending the conversation (step 9)
 
-- [ ] Prompt: when to add `[bye]`, and when not to ("thanks! and the pool?")
-- [ ] LangSmith dataset `wayan-goodbye`: real goodbyes and look-alikes (step 17)
-- [ ] Human review: 10 conversations, scored for persona (prd.md §12)
+- [x] Prompt: when to add `[bye]`, and when not to ("thanks! and the pool?") (done in milestone 2)
+- [x] LangSmith dataset `wayan-goodbye`: real goodbyes and look-alikes (step 17) 2026-10-24: 16 cases, both 100%
+- [ ] Human review: 10 conversations, scored for persona (prd.md §12). Transcripts ready for Rozi: `evals/review/persona-2026-10-24.md` (make new ones with `uv run python -m evals.review`)
+- [x] Balinese words: at most one per reply and no repeats in a chat ("suksma" came up in almost every reply)
 
 Human-in-the-loop (step 9.5) isn't needed in v1: every turn already ends by waiting for the guest.
 
