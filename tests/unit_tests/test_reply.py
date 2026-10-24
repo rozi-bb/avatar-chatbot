@@ -2,14 +2,8 @@ import re
 
 import pytest
 
-from agent.reply import (
-    EMERGENCY_LINE,
-    ERROR_LINE,
-    GOODBYE_LINE,
-    MAX_CHARS,
-    SPOKEN_TAGS,
-    check_reply,
-)
+from agent import lines
+from agent.reply import MAX_CHARS, SPOKEN_TAGS, check_reply
 
 
 def tags(text: str) -> list[str]:
@@ -84,23 +78,23 @@ def test_bye_ends_the_session_and_is_not_spoken() -> None:
 
 def test_a_bare_bye_still_says_goodbye() -> None:
     assert check_reply("[bye]") == check_reply(" [BYE] ")
-    assert check_reply("[bye]").text == GOODBYE_LINE
+    assert check_reply("[bye]").text == lines.GOODBYE
     assert check_reply("[bye]").end_session is True
 
 
 def test_help_is_replaced_by_the_fixed_emergency_line() -> None:
     result = check_reply("[help] Oh no, let me think about that...")
 
-    assert result.text == EMERGENCY_LINE
+    assert result.text == lines.EMERGENCY
     assert result.end_session is False
 
 
 def test_an_empty_reply_becomes_the_error_line() -> None:
-    assert check_reply("").text == ERROR_LINE
-    assert check_reply("[smile] 😀").text == ERROR_LINE
+    assert check_reply("").text == lines.ERROR
+    assert check_reply("[smile] 😀").text == lines.ERROR
 
 
-@pytest.mark.parametrize("line", [EMERGENCY_LINE, ERROR_LINE, GOODBYE_LINE])
+@pytest.mark.parametrize("line", lines.ALL)
 def test_fixed_lines_follow_the_contract(line: str) -> None:
     assert check_reply(line).text == line
     assert set(tags(line)) <= SPOKEN_TAGS

@@ -5,6 +5,7 @@ from langchain_deepseek import ChatDeepSeek
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.pregel import Pregel
 
+from agent import lines
 from agent.graph import (
     MODEL_NAME,
     THINKING,
@@ -15,6 +16,7 @@ from agent.graph import (
     graph,
 )
 from agent.prompts import SYSTEM_PROMPT
+from agent.screen import MAX_GUEST_CHARS
 from unit_tests.fakes import PromptRecorder, fake_model
 
 
@@ -155,3 +157,50 @@ async def test_thinking_is_not_kept_in_the_thread() -> None:
     result = await build_graph(model).ainvoke({"messages": [HumanMessage("Hi!")]})
 
     assert "reasoning_content" not in result["messages"][-1].additional_kwargs
+
+
+@pytest.mark.anyio
+async def test_an_emergency_gets_the_fixed_line_without_the_model() -> None:
+    recorder = PromptRecorder()
+
+    result = await build_graph(fake_model()).ainvoke(
+        {"messages": [HumanMessage("Help! My daughter is lost!")]},
+        {"callbacks": [recorder]},
+    )
+
+    assert recorder.calls == []
+    assert result["route"] == "emergency"
+    assert result["messages"][-1].text == lines.EMERGENCY
+    assert result["end_session"] is False
+
+
+@pytest.mark.anyio
+async def test_a_request_for_a_person_gets_the_staff_line() -> None:
+    result = await build_graph(fake_model()).ainvoke(
+        {"messages": [HumanMessage("Can I talk to a real person?")]}
+    )
+
+    assert result["route"] == "staff"
+    assert result["messages"][-1].text == lines.STAFF
+
+
+@pytest.mark.anyio
+async def test_a_long_message_is_cut_before_the_model_reads_it() -> None:
+    recorder = PromptRecorder()
+
+    result = await build_graph(fake_model("[smile] Wow, a long one!")).ainvoke(
+        {"messages": [HumanMessage("tell me " * 100)]}, {"callbacks": [recorder]}
+    )
+
+    assert len(recorder.calls[0][-1].text) == MAX_GUEST_CHARS
+    assert len(result["messages"]) == 2
+
+
+@pytest.mark.anyio
+async def test_a_help_tag_from_the_model_becomes_the_emergency_line() -> None:
+    result = await build_graph(fake_model("[help]")).ainvoke(
+        {"messages": [HumanMessage("My grandpa collapsed near the pool")]}
+    )
+
+    assert result["route"] == "normal"
+    assert result["messages"][-1].text == lines.EMERGENCY

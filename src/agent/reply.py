@@ -9,22 +9,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from agent import lines
+
 MAX_CHARS = 400
 """The avatar's limit per utterance, tags included."""
 
 FACE_TAGS = frozenset({"smile", "neutral", "surprised", "sad", "laugh"})
 SPOKEN_TAGS = FACE_TAGS | {"thumbsup"}
-
-# Fixed lines from docs/prd.md §11.
-EMERGENCY_LINE = (
-    "[neutral] This sounds important! Please go to the front desk in the lobby "
-    "right now, or ask any staff member. If someone is in danger, call 112."
-)
-ERROR_LINE = (
-    "[sad] Oops, my brain got a bit tangled. Could you say that again? "
-    "If it keeps happening, the front desk can help."
-)
-GOODBYE_LINE = "[smile] Bye bye!"
 
 TAG = re.compile(r"\[\s*([A-Za-z]+)\s*\]")
 BRACKETS = re.compile(r"\[([^\]]*)\]")
@@ -66,7 +57,7 @@ def check_reply(text: str) -> CheckedReply:
     """
     names = {name.lower() for name in TAG.findall(text)}
     if "help" in names:
-        return CheckedReply(EMERGENCY_LINE, end_session=False)
+        return CheckedReply(lines.EMERGENCY, end_session=False)
     end_session = "bye" in names
 
     text = MARKDOWN_LINK.sub(r"\1", text)
@@ -83,7 +74,7 @@ def check_reply(text: str) -> CheckedReply:
     text = TRAILING_TAGS.sub("", text)
 
     if not re.search(r"[A-Za-z0-9]", TAG.sub("", text)):
-        return CheckedReply(GOODBYE_LINE if end_session else ERROR_LINE, end_session)
+        return CheckedReply(lines.GOODBYE if end_session else lines.ERROR, end_session)
     if not (match := TAG.match(text)) or match.group(1) not in SPOKEN_TAGS:
         text = f"[smile] {text}"
     return CheckedReply(_cut(text), end_session)

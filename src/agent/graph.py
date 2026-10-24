@@ -1,8 +1,9 @@
 """Wayan, the little host of Taman Gumitir, a fictional heritage hotel in Bali.
 
-The model writes Wayan's reply from his persona, the knowledge pack, and the
-current Bali time; then code checks it against the reply contract before anyone
-hears it. docs/architecture.md shows the whole design.
+Every message is screened first: emergencies and requests for a person get a
+fixed reply. Otherwise the model writes Wayan's reply from his persona, the
+knowledge pack, and the current Bali time, and code checks it against the reply
+contract before anyone hears it. docs/architecture.md shows the whole design.
 """
 
 from __future__ import annotations
@@ -14,15 +15,17 @@ from typing import Any, NotRequired
 from zoneinfo import ZoneInfo
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_deepseek import ChatDeepSeek
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.runtime import Runtime
 from langgraph.types import Checkpointer
 
+from agent import lines
 from agent.prompts import SYSTEM_PROMPT, time_note
 from agent.reply import check_reply
+from agent.screen import MAX_GUEST_CHARS, Route, screen
 
 MODEL_NAME = "deepseek-flash"
 
@@ -36,13 +39,15 @@ BALI = ZoneInfo("Asia/Makassar")
 
 
 class State(MessagesState):
-    """The conversation, plus whether Wayan just ended it.
+    """The conversation, where the latest message went, and whether it ended.
 
     Attributes:
+        route: Where screen_message sent the guest's latest message.
         end_session: True when Wayan's latest reply said goodbye with [bye];
             the kiosk ends the session after speaking it.
     """
 
+    route: NotRequired[Route]
     end_session: NotRequired[bool]
 
 
@@ -118,6 +123,23 @@ def build_graph(
         )
         return {"messages": [reply]}
 
+    def screen_message(state: State) -> dict[str, Any]:
+        """Cut the guest's message to size and pick its route, before any model call."""
+        message = state["messages"][-1]
+        update: dict[str, Any] = {"route": screen(message.text)}
+        if isinstance(message, HumanMessage) and len(message.text) > MAX_GUEST_CHARS:
+            cut = message.text[:MAX_GUEST_CHARS]
+            update["messages"] = [message.model_copy(update={"content": cut})]
+        return update
+
+    def after_screen(state: State) -> str:
+        return "wayan" if state.get("route", "normal") == "normal" else "fixed_reply"
+
+    def fixed_reply(state: State) -> dict[str, Any]:
+        """Answer an emergency or a request for a person with the fixed line."""
+        line = lines.EMERGENCY if state.get("route") == "emergency" else lines.STAFF
+        return {"messages": [AIMessage(line)], "end_session": False}
+
     def check(state: State) -> dict[str, Any]:
         """Hold Wayan's reply to the reply contract before it is spoken."""
         reply = state["messages"][-1]
@@ -139,9 +161,15 @@ def build_graph(
     builder: StateGraph[State, Context, State, State] = StateGraph(
         State, context_schema=Context
     )
+    builder.add_node(screen_message)
+    builder.add_node(fixed_reply)
     builder.add_node(wayan)
     builder.add_node("check_reply", check)
-    builder.add_edge(START, "wayan")
+    builder.add_edge(START, "screen_message")
+    builder.add_conditional_edges(
+        "screen_message", after_screen, ["wayan", "fixed_reply"]
+    )
+    builder.add_edge("fixed_reply", END)
     builder.add_edge("wayan", "check_reply")
     builder.add_edge("check_reply", END)
     return builder.compile(name="Wayan", checkpointer=checkpointer)

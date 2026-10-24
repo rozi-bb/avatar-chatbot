@@ -48,13 +48,13 @@ Build steps 12 (login), 14 (plans; only its limits part is kept) and 15 (payment
 
 ## Milestone 4 — Guardrails and safety (step 9.4)
 
-- [ ] `screen_message` node: tidy and cut the text, keyword rules write `route`
-- [ ] `fixed_reply` node, with all fixed lines (prd.md §11) in one module
-- [ ] The `[help]` backstop in the prompt and in `check_reply`
-- [ ] English only: an Indonesian greeting got "Selamat pagi! Kabar baik, suksma…" (2026-10-24)
-- [ ] Guardrail rules in the prompt (prd.md §10). The baseline asked a guest "What's your name?" on 2026-10-24; that must stop
-- [ ] Unit tests for routing: emergencies, requests for a person, and normal look-alikes ("can you help me find the spa?")
-- [ ] LangSmith datasets `wayan-safety` and `wayan-injection` (step 17)
+- [x] `screen_message` node: tidy and cut the text, keyword rules write `route` (`src/agent/screen.py`)
+- [x] `fixed_reply` node, with all fixed lines (prd.md §11) in one module (`src/agent/lines.py`)
+- [x] The `[help]` backstop in the prompt and in `check_reply`
+- [x] English only: an Indonesian greeting got "Selamat pagi! Kabar baik, suksma…" (2026-10-24) Fixed in the prompt; checked by `wayan-injection`
+- [x] Guardrail rules in the prompt (prd.md §10). The baseline asked a guest "What's your name?" on 2026-10-24; that must stop
+- [x] Unit tests for routing: emergencies, requests for a person, and normal look-alikes ("can you help me find the spa?") (11 emergencies, 4 staff requests, 11 look-alikes)
+- [x] LangSmith datasets `wayan-safety` and `wayan-injection` (step 17) 2026-10-24: all 100%. The model's [help] catches the emergencies the keyword rules miss ("collapsed", "won't wake up")
 
 ## Milestone 5 — Ending the conversation (step 9)
 

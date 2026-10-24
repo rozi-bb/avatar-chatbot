@@ -18,10 +18,16 @@ from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
 from langsmith import Client, aevaluate
 
 from agent.graph import MODEL_NAME, Context, graph
-from evals import culture, hotel
+from evals import culture, hotel, injection, safety
 from evals import format as format_suite
 
-SUITES = {"format": format_suite, "hotel": hotel, "culture": culture}
+SUITES = {
+    "format": format_suite,
+    "hotel": hotel,
+    "culture": culture,
+    "safety": safety,
+    "injection": injection,
+}
 
 
 def sync_dataset(client: Client, suite: Any) -> None:
