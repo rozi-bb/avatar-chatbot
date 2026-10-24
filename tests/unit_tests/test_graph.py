@@ -204,3 +204,15 @@ async def test_a_help_tag_from_the_model_becomes_the_emergency_line() -> None:
 
     assert result["route"] == "normal"
     assert result["messages"][-1].text == lines.EMERGENCY
+
+
+@pytest.mark.anyio
+async def test_a_guest_who_asks_something_is_not_sent_away() -> None:
+    result = await build_graph(
+        fake_model("[smile] It's 88 years old! Safe travels! [bye]")
+    ).ainvoke(
+        {"messages": [HumanMessage("I'm leaving tomorrow. How old is the tree?")]}
+    )
+
+    assert result["end_session"] is False
+    assert "[bye]" not in result["messages"][-1].text

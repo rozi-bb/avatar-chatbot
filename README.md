@@ -22,11 +22,13 @@ cp .env.example .env    # then fill in the two keys
 
 ## Run
 
-The kiosk (backend and page, http://127.0.0.1:8000):
+The kiosk (backend and page): open http://127.0.0.1:8000 in Chrome, press Start, and talk.
 
 ```bash
 uv run uvicorn backend.app:build_app --factory --port 8000
 ```
+
+It needs a microphone; for testing without one, open http://127.0.0.1:8000/?type=1 and type what a guest would say. The backend needs the Azure Speech key too (see `.env.example`).
 
 For developing the agent alone:
 

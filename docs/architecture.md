@@ -2,7 +2,7 @@
 
 How the chatbot is built, and why. What we build and for whom: [prd.md](prd.md). Order of work: [roadmap.md](roadmap.md).
 
-**Status:** design for v1. Built so far: the `wayan` → `check_reply` graph (§4.1), session memory, and trace metadata. **Updated:** 2026-10-24
+**Status:** v1 built through roadmap milestone 7: the graph (§4.2), the backend (§3), and the kiosk page. Not yet deployed. **Updated:** 2026-10-24
 
 ---
 
@@ -29,8 +29,8 @@ flowchart LR
 
 | Part | Job | Where |
 |---|---|---|
-| Kiosk page | Start and Stop buttons, microphone and speech-to-text, cut-in detection, idle timers; plays Wayan's sentences through the avatar | `web/`, copied from `new_avatar_ai/web` at build step 16 |
-| Backend | One FastAPI server: serves the kiosk page, hands out short-lived Azure speech tokens (ported from the avatar's `server.py`), runs sessions and the chat stream, enforces limits | `src/backend/`, build step 10 |
+| Kiosk page | Start and Stop buttons, microphone and speech-to-text, cut-in detection, idle timers; plays Wayan's sentences through the avatar | `web/index.html`, built from `new_avatar_ai/web` |
+| Backend | One FastAPI server: serves the kiosk page, hands out short-lived Azure speech tokens (ported from the avatar's `server.py`), runs sessions and the chat stream, enforces limits | `src/backend/` |
 | Agent | The LangGraph graph that decides what Wayan says | `src/agent/` |
 | DeepSeek | The model | DeepSeek API |
 | LangSmith | Traces and evaluations | Cloud, project `avatar-chatbot` |
@@ -92,16 +92,11 @@ When a reply ends the session (`[bye]` or the turn limit), the backend ends it a
 
 ## 4. The graph
 
-### 4.1 Now: reply and reply check (build steps 8–9)
+### 4.1 How it grew
 
-```mermaid
-flowchart LR
-    S((START)) --> W["wayan<br/>LLM"] --> CK["check_reply<br/>code"] --> E((END))
-```
+Build step 8 started with one node, `wayan`; milestone 2 added `check_reply`, milestone 4 the screen and the fixed replies. §4.2 is the graph as it is now.
 
-`wayan` sends the system prompt (persona and speaking rules, `src/agent/prompts.py`) and the conversation to DeepSeek. `check_reply` (`src/agent/reply.py`) holds the reply to the contract in §5 and sets `end_session`; the checked message replaces the raw one under the same ID, so the thread remembers exactly what Wayan says. There is no knowledge yet, so Wayan still makes up details when asked; the knowledge milestone fixes that, and the evals prove the fix.
-
-### 4.2 Target for v1 (built one feature at a time in build step 9)
+### 4.2 The graph now (v1)
 
 ```mermaid
 flowchart LR
@@ -118,7 +113,7 @@ flowchart LR
 | `screen_message` | Code (rules) | Tidies the guest's text (trims it, cuts it at 300 characters) and spots clear emergencies and requests for a person with keyword rules, before any model call. Writes `route` |
 | `fixed_reply` | Code | Adds the fixed line for that route (prd.md §11) |
 | `wayan` | LLM | Writes Wayan's reply from the persona, the knowledge pack, the current Bali time, and the conversation |
-| `check_reply` | Code | Enforces the reply contract (§5): keeps known tags only, strips markdown, emoji, and links, cuts at 400 characters at a sentence end, turns `[bye]` into `end_session`, and swaps a `[help]` reply for the fixed emergency line |
+| `check_reply` | Code | Enforces the reply contract (§5): keeps known tags only, strips markdown, emoji, and links, cuts at 400 characters at a sentence end, turns `[bye]` into `end_session` (unless the guest's message asked something: the idle timer can end that session, a mistaken end can't be undone), and swaps a `[help]` reply for the fixed emergency line |
 
 The route is decided inside `screen_message`; the edge only reads `route` from the state.
 
@@ -183,7 +178,7 @@ Knowledge goes in whole, without retrieval: the two files are about 2,300 words 
 | Guest text | 300 characters | Cut |
 | Model output | 800 tokens (`max_tokens`, thinking included) | Cut, then `check_reply` ends the reply at a sentence |
 | Model timeout | 20 s, 1 retry | Fixed error line |
-| Daily spend, online only | about $0.16 | Fixed "resting" line |
+| Daily spend, online only | `DAILY_BUDGET_USD`, about $0.16 (estimated in `budget.py`, kept in memory) | Fixed "resting" line; the session ends |
 
 ## 8. Model settings
 
@@ -212,8 +207,9 @@ avatar-chatbot/
 ├── docs/              prd.md · architecture.md · roadmap.md
 ├── knowledge/         hotel.md · bali-culture.md (prompt content)
 ├── src/agent/         graph.py · prompts.py (from the LangGraph template)
-├── src/backend/       FastAPI app (build step 10, not yet)
-├── web/               kiosk page (build step 16, not yet)
+├── src/backend/       FastAPI app: endpoints, sentence stream, sessions, tokens, budget
+├── web/               kiosk page (avatar + Start/Stop + speech-to-text)
+├── evals/             LangSmith suites, evaluators, persona review
 ├── tests/             unit_tests/ · integration_tests/
 ├── langgraph.json     where the graph is, for `langgraph dev`
 └── pyproject.toml     dependencies, managed with uv

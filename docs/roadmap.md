@@ -59,7 +59,7 @@ Build steps 12 (login), 14 (plans; only its limits part is kept) and 15 (payment
 ## Milestone 5 — Ending the conversation (step 9)
 
 - [x] Prompt: when to add `[bye]`, and when not to ("thanks! and the pool?") (done in milestone 2)
-- [x] LangSmith dataset `wayan-goodbye`: real goodbyes and look-alikes (step 17) 2026-10-24: 16 cases, both 100%
+- [x] LangSmith dataset `wayan-goodbye`: real goodbyes and look-alikes (step 17) 2026-10-24: 16 cases, both 100%. A later run ended a session for "I'm leaving Bali tomorrow. Any last fun fact?": the prompt now says a trip later isn't a goodbye, and code never ends a session when the guest's message asks something (the idle timer ends it instead). Three runs after that: 100%
 - [ ] Human review: 10 conversations, scored for persona (prd.md §12). Transcripts ready for Rozi: `evals/review/persona-2026-10-24.md` (make new ones with `uv run python -m evals.review`)
 - [x] Balinese words: at most one per reply and no repeats in a chat ("suksma" came up in almost every reply)
 
@@ -80,13 +80,13 @@ Step 11 (database) isn't planned: sessions live in memory and history lives in L
 
 ## Milestone 7 — Kiosk page (step 16)
 
-- [ ] Copy the avatar page from `new_avatar_ai/web` into `web/`, served by the backend
-- [ ] Start and Stop buttons, with the session calls
-- [ ] Azure STT in continuous mode; cut-ins on recognized words
-- [ ] A sentence queue for `speak()`; after a `[bye]` reply, end once Wayan finishes speaking
-- [ ] Idle timers: 45 s "still there?", 60 s goodbye
-- [ ] Add the hotel's and Balinese words to `LOCAL_NAMES` (Taman, Gumitir, Swastiastu, suksma, …)
-- [ ] Measure the time from the guest's last word to Wayan's first sound
+- [x] Copy the avatar page from `new_avatar_ai/web` into `web/`, served by the backend (the try-out panel became the kiosk panel; `speak(text)` now resolves when Wayan is done)
+- [x] Start and Stop buttons, with the session calls
+- [ ] Azure STT in continuous mode; cut-ins on recognized words. Built (phrase hints, echo filter, token refresh) and the cut-in path tested with typed words; still needs a try with a real microphone in Chrome, which the Browser pane blocks
+- [x] A sentence queue for `speak()`; after a `[bye]` reply, end once Wayan finishes speaking
+- [x] Idle timers: 45 s "still there?", 60 s goodbye (tried by calling the idle step directly, not by waiting)
+- [x] Add the hotel's and Balinese words to `LOCAL_NAMES` (Taman, Gumitir, Swastiastu, suksma, …) (not yet heard by ear)
+- [x] Measure the time from the guest's last word to Wayan's first sound 2026-10-24, typed in the test box (`?type=1`): median 1.94 s from sending the words to Wayan's first sound (1.11–2.52 s, 5 replies). Speech-to-text adds its end-of-speech wait on top
 
 ## Milestone 8 — Deploy and monitor (steps 20–26)
 

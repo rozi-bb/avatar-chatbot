@@ -144,6 +144,14 @@ def build_graph(
         """Hold Wayan's reply to the reply contract before it is spoken."""
         reply = state["messages"][-1]
         checked = check_reply(reply.text)
+        # A guest who just asked something isn't leaving, whatever the model
+        # thinks. Ending by mistake cuts them off; missing a goodbye costs
+        # nothing, because the kiosk's idle timer ends the session anyway.
+        guest = next(
+            (m for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
+            None,
+        )
+        asked = guest is not None and "?" in guest.text
         # Same message ID, so add_messages replaces the raw reply: the thread
         # remembers exactly what Wayan says, without his thinking.
         kept = {
@@ -155,7 +163,7 @@ def build_graph(
                     update={"content": checked.text, "additional_kwargs": kept}
                 )
             ],
-            "end_session": checked.end_session,
+            "end_session": checked.end_session and not asked,
         }
 
     builder: StateGraph[State, Context, State, State] = StateGraph(

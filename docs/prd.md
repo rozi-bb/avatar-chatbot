@@ -246,12 +246,12 @@ Assumptions:
 | Costs grow once it's online | A surprise bill | Turn limit, daily cap, and the providers' own spending limits |
 | Kids say rude things or try tricks | Bad replies | Guardrails, plus tricky kid-style inputs in the evals |
 
-Changes needed on the avatar side later (build step 16):
+Changes the kiosk page needed on top of the avatar (build step 16; done in `web/index.html` unless marked):
 
 - Add the hotel's and Balinese words to the avatar's `LOCAL_NAMES` (for example Taman, Gumitir, Swastiastu, suksma) so the voice says them with Indonesian sounds.
 - Queue several `speak()` calls, so sentences can stream in one by one.
 - Start and Stop buttons, the microphone with Azure STT, cut-ins, and the idle timers.
-- "Listening" and "thinking" faces (planned in the avatar PRD's v2).
+- "Listening" and "thinking" faces (planned in the avatar PRD's v2). Not done: the page shows the state in text for now.
 
 ## 15. Initial eval dataset
 

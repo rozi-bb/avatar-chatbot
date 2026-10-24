@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120">
+<defs>
+<g id="puff">
+<circle cx="72" cy="80" r="38"/><circle cx="128" cy="56" r="50"/>
+<circle cx="190" cy="64" r="42"/><circle cx="238" cy="86" r="30"/>
+<rect x="72" y="70" width="166" height="46" rx="4"/>
+</g>
+<clipPath id="low"><rect x="0" y="94" width="300" height="30"/></clipPath>
+</defs>
+<use href="#puff" fill="rgb(250,248,243)"/>
+<use href="#puff" fill="rgb(222,234,243)" clip-path="url(#low)"/>
+</svg>
