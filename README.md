@@ -22,6 +22,14 @@ cp .env.example .env    # then fill in the two keys
 
 ## Run
 
+The kiosk (backend and page, http://127.0.0.1:8000):
+
+```bash
+uv run uvicorn backend.app:build_app --factory --port 8000
+```
+
+For developing the agent alone:
+
 ```bash
 uv run langgraph dev
 ```

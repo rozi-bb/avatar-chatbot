@@ -19,6 +19,7 @@ Link to these documents; don't copy their content into this file.
 
 ```bash
 uv run langgraph dev                  # dev server + Studio (http://127.0.0.1:2024)
+uv run uvicorn backend.app:build_app --factory --port 8000   # kiosk backend + page
 uv run pytest -q                      # unit tests, no API calls
 uv run pytest -q -m integration       # integration tests, real API calls
 uv run ruff check .                   # lint
@@ -32,8 +33,11 @@ uv run python -m evals.run            # LangSmith evaluations (real API calls)
 - `langgraph.json`: tells the dev server where the graph is (`./src/agent/graph.py:graph`)
 - `src/agent/graph.py`: the model setup, state, context, nodes, and the graph (`build_graph`)
 - `src/agent/prompts.py`: Wayan's system prompt
-- `src/agent/reply.py`: the reply contract (`check_reply`) and the fixed lines it uses
-- `evals/`: LangSmith datasets and code evaluators (`format.py`) and the runner (`run.py`)
+- `src/agent/reply.py`: the reply contract (`check_reply`)
+- `src/agent/screen.py`: the message screen (emergency and staff rules)
+- `src/agent/lines.py`: Wayan's fixed lines
+- `src/backend/`: the FastAPI backend: `app.py` (endpoints), `stream.py` (checked sentences), `sessions.py`, `speech.py` (Azure tokens), `budget.py`, `settings.py`
+- `evals/`: one module per LangSmith suite, shared evaluators and LLM judges (`checks.py`), the runner (`run.py`), and persona review transcripts (`review.py`, `review/`)
 - `tests/unit_tests/`, `tests/integration_tests/`
 - `knowledge/`, `docs/`: see the table above
 

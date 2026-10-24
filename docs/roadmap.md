@@ -67,14 +67,14 @@ Human-in-the-loop (step 9.5) isn't needed in v1: every turn already ends by wait
 
 ## Milestone 6 — Backend (steps 10, 13, 18, 19)
 
-- [ ] FastAPI skeleton: health endpoint, settings from the environment (step 10)
-- [ ] Speech-token endpoint, ported from the avatar's `server.py`
-- [ ] `POST /sessions` (greeting stored in the thread) and `DELETE /sessions/{id}` (thread deleted)
-- [ ] `POST /sessions/{id}/messages`: checked sentence events, then `done` (step 13)
-- [ ] `POST /sessions/{id}/idle`: the 45 s and 60 s lines
-- [ ] Cut-ins: replace the last AI message with the part Wayan actually said
-- [ ] Limits: 20 turns, 300 characters, timeout → fixed lines (the limits part of step 14)
-- [ ] Business-flow tests (step 18) and security tests (step 19)
+- [x] FastAPI skeleton: health endpoint, settings from the environment (step 10) (`src/backend/app.py`, `settings.py`)
+- [x] Speech-token endpoint, ported from the avatar's `server.py` (`speech.py`; the key never leaves the server)
+- [x] `POST /sessions` (greeting stored in the thread) and `DELETE /sessions/{id}` (thread deleted)
+- [x] `POST /sessions/{id}/messages`: checked sentence events, then `done` (step 13) (`stream.py`: the spoken sentences always add up to the stored reply). Live 2026-10-24: first sentence after 0.7–0.9 s
+- [x] `POST /sessions/{id}/idle`: the 45 s and 60 s lines
+- [x] Cut-ins: replace the last AI message with the part Wayan actually said (also when the guest cuts in before the reply arrived)
+- [x] Limits: 20 turns, 300 characters, timeout → fixed lines (the limits part of step 14) (plus an optional daily budget, `DAILY_BUDGET_USD`, estimated in `budget.py`)
+- [x] Business-flow tests (step 18) and security tests (step 19) (`tests/unit_tests/test_backend.py`: 12 flows, 8 security checks)
 
 Step 11 (database) isn't planned: sessions live in memory and history lives in LangSmith. Revisit it if the daily spend cap must survive restarts.
 
