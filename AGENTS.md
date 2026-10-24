@@ -23,14 +23,17 @@ uv run pytest -q                      # unit tests, no API calls
 uv run pytest -q -m integration       # integration tests, real API calls
 uv run ruff check .                   # lint
 uv run ruff format .                  # format
-uv run mypy --strict src              # type check
+uv run mypy --strict src evals        # type check
+uv run python -m evals.run            # LangSmith evaluations (real API calls)
 ```
 
 ## Layout
 
 - `langgraph.json`: tells the dev server where the graph is (`./src/agent/graph.py:graph`)
-- `src/agent/graph.py`: the model setup, the nodes, and the graph (`build_graph`)
+- `src/agent/graph.py`: the model setup, state, context, nodes, and the graph (`build_graph`)
 - `src/agent/prompts.py`: Wayan's system prompt
+- `src/agent/reply.py`: the reply contract (`check_reply`) and the fixed lines it uses
+- `evals/`: LangSmith datasets and code evaluators (`format.py`) and the runner (`run.py`)
 - `tests/unit_tests/`, `tests/integration_tests/`
 - `knowledge/`, `docs/`: see the table above
 

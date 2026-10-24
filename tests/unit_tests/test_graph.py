@@ -143,3 +143,24 @@ async def test_channel_defaults_to_studio() -> None:
 
     [metadata] = recorder.metadata
     assert metadata["channel"] == "studio"
+
+
+@pytest.mark.anyio
+async def test_the_stored_reply_is_the_checked_one() -> None:
+    result = await build_graph(fake_model("Hi **friend** 😀! [wink]")).ainvoke(
+        {"messages": [HumanMessage("Hi!")]}
+    )
+
+    assert [type(m) for m in result["messages"]] == [HumanMessage, AIMessage]
+    assert result["messages"][-1].text == "[smile] Hi friend!"
+    assert result["end_session"] is False
+
+
+@pytest.mark.anyio
+async def test_a_goodbye_ends_the_session() -> None:
+    result = await build_graph(fake_model("[smile] Bye bye! [bye]")).ainvoke(
+        {"messages": [HumanMessage("Bye Wayan!")]}
+    )
+
+    assert result["end_session"] is True
+    assert "[bye]" not in result["messages"][-1].text

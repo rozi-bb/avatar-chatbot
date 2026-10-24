@@ -53,6 +53,7 @@ lint.ignore = [
 ]
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D", "UP"]
+"evals/*" = ["T201"]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 

@@ -20,8 +20,8 @@ Build steps 12 (login), 14 (plans; only its limits part is kept) and 15 (payment
 - [x] `docs/roadmap.md` (step 6)
 - [x] LangSmith tracing on (step 7)
 - [x] Baseline graph: one `wayan` node with the persona prompt, unit tests, running in `langgraph dev` (checked through its API: three turns on one thread), with its traces in LangSmith (step 8)
-- [ ] Rozi chats with Wayan in Studio (Chrome) and reads a trace
-- [ ] Rozi reviews the docs and the hotel draft: name, story, facilities, culture notes
+- [x] Rozi chats with Wayan in Studio (Chrome) and reads a trace
+- [x] Rozi reviews the docs and the hotel draft: name, story, facilities, culture notes (approved 2026-10-24)
 
 ## Milestone 1 — Memory (step 9.2)
 
@@ -31,17 +31,18 @@ Build steps 12 (login), 14 (plans; only its limits part is kept) and 15 (payment
 
 ## Milestone 2 — Reply contract (step 9.3, part 1)
 
-- [ ] `src/agent/reply.py`: `check_reply(text)` returns the cleaned text and `end_session`: tag whitelist, no markdown, emoji, or links, a 400-character cut at a sentence end
-- [ ] Unit tests for `check_reply`: tags, markdown, emoji, long text, `[bye]`, `[help]`
-- [ ] `end_session` in the state, and a `check_reply` node after `wayan`
-- [ ] Prompt: the `[bye]` rule
-- [ ] LangSmith dataset `wayan-format` and a code evaluator for the format (step 17)
+- [x] `src/agent/reply.py`: `check_reply(text)` returns the cleaned text and `end_session`: tag whitelist, no markdown, JSON, emoji, or links, a 400-character cut at a sentence end
+- [x] Unit tests for `check_reply`: tags, markdown, JSON, emoji, long text, `[bye]`, `[help]`
+- [x] `end_session` in the state, and a `check_reply` node after `wayan`
+- [x] Prompt: the `[bye]` rule
+- [x] LangSmith dataset `wayan-format` and code evaluators for the format and `end_session` (step 17). 2026-10-24: both 100%. The first run exposed a JSON-wrapped reply the evaluator missed; both are fixed
 
 ## Milestone 3 — Knowledge and time (step 9.3, part 2)
 
-- [ ] Rozi approves `knowledge/*.md`
+- [x] Rozi approves `knowledge/*.md` (2026-10-24)
 - [ ] Read both files into the system prompt at startup, the fixed part first for caching
 - [ ] `Context.now` and the current Bali time (Asia/Makassar) at the end of the system prompt
+- Seen without knowledge (2026-10-24), for the evals to catch: "the lobby always smells like fresh flowers", "I am a little wooden boy", "riding my bike"
 - [ ] Unit tests: the knowledge and the time appear in the prompt; a fixed `now` is used when given
 - [ ] LangSmith datasets `wayan-hotel-facts` (with "unknown" cases) and `wayan-culture`, with evaluators (step 17)
 
@@ -50,6 +51,7 @@ Build steps 12 (login), 14 (plans; only its limits part is kept) and 15 (payment
 - [ ] `screen_message` node: tidy and cut the text, keyword rules write `route`
 - [ ] `fixed_reply` node, with all fixed lines (prd.md §11) in one module
 - [ ] The `[help]` backstop in the prompt and in `check_reply`
+- [ ] English only: an Indonesian greeting got "Selamat pagi! Kabar baik, suksma…" (2026-10-24)
 - [ ] Guardrail rules in the prompt (prd.md §10). The baseline asked a guest "What's your name?" on 2026-10-24; that must stop
 - [ ] Unit tests for routing: emergencies, requests for a person, and normal look-alikes ("can you help me find the spa?")
 - [ ] LangSmith datasets `wayan-safety` and `wayan-injection` (step 17)

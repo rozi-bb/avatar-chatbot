@@ -2,7 +2,7 @@
 
 How the chatbot is built, and why. What we build and for whom: [prd.md](prd.md). Order of work: [roadmap.md](roadmap.md).
 
-**Status:** design for v1. Only the baseline graph (§4.1) is built so far. **Updated:** 2026-10-24
+**Status:** design for v1. Built so far: the `wayan` → `check_reply` graph (§4.1), session memory, and trace metadata. **Updated:** 2026-10-24
 
 ---
 
@@ -92,14 +92,14 @@ When a reply ends the session (`[bye]` or the turn limit), the backend ends it a
 
 ## 4. The graph
 
-### 4.1 Now: the baseline (build step 8)
+### 4.1 Now: reply and reply check (build steps 8–9)
 
 ```mermaid
 flowchart LR
-    S((START)) --> W["wayan<br/>LLM"] --> E((END))
+    S((START)) --> W["wayan<br/>LLM"] --> CK["check_reply<br/>code"] --> E((END))
 ```
 
-One node: the system prompt (persona and speaking rules, `src/agent/prompts.py`) followed by the conversation, sent to DeepSeek. There is no knowledge yet, so the baseline will make up hotel facts when asked. That is expected: the knowledge milestone fixes it, and the evals prove the fix.
+`wayan` sends the system prompt (persona and speaking rules, `src/agent/prompts.py`) and the conversation to DeepSeek. `check_reply` (`src/agent/reply.py`) holds the reply to the contract in §5 and sets `end_session`; the checked message replaces the raw one under the same ID, so the thread remembers exactly what Wayan says. There is no knowledge yet, so Wayan still makes up details when asked; the knowledge milestone fixes that, and the evals prove the fix.
 
 ### 4.2 Target for v1 (built one feature at a time in build step 9)
 

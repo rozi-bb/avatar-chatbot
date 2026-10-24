@@ -36,5 +36,6 @@ Every run is traced to the LangSmith project `avatar-chatbot`.
 uv run pytest -q                    # unit tests, no API calls
 uv run pytest -q -m integration     # integration tests: real DeepSeek calls
 uv run ruff check .                 # lint
-uv run mypy --strict src            # type check
+uv run mypy --strict src evals      # type check
+uv run python -m evals.run          # LangSmith evaluations: real DeepSeek calls
 ```

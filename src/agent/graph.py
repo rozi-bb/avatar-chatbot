@@ -1,15 +1,16 @@
 """Wayan, the little host of Taman Gumitir, a fictional heritage hotel in Bali.
 
-Baseline graph (build step 8): one model call with Wayan's persona. The
-milestones in docs/roadmap.md add the reply contract, the knowledge pack, and
-the safety route; docs/architecture.md shows where it is heading.
+The model writes Wayan's reply, then code checks it against the reply
+contract before anyone hears it. The milestones in docs/roadmap.md add the
+knowledge pack and the safety route next; docs/architecture.md shows where it
+is heading.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import cache
-from typing import Any
+from typing import Any, NotRequired
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage
@@ -20,12 +21,24 @@ from langgraph.runtime import Runtime
 from langgraph.types import Checkpointer
 
 from agent.prompts import SYSTEM_PROMPT
+from agent.reply import check_reply
 
 MODEL_NAME = "deepseek-flash"
 
 # Thinking is on by default for deepseek-flash and delays the first word by
 # seconds, which a voice conversation can't afford (docs/architecture.md §8).
 THINKING_OFF = {"thinking": {"type": "disabled"}}
+
+
+class State(MessagesState):
+    """The conversation, plus whether Wayan just ended it.
+
+    Attributes:
+        end_session: True when Wayan's latest reply said goodbye with [bye];
+            the kiosk ends the session after speaking it.
+    """
+
+    end_session: NotRequired[bool]
 
 
 @dataclass
@@ -66,7 +79,7 @@ def default_model() -> BaseChatModel:
 def build_graph(
     model: BaseChatModel | None = None,
     checkpointer: Checkpointer = None,
-) -> CompiledStateGraph[MessagesState, Context, MessagesState, MessagesState]:
+) -> CompiledStateGraph[State, Context, State, State]:
     """Build Wayan's graph.
 
     Args:
@@ -75,7 +88,7 @@ def build_graph(
             stores threads itself.
     """
 
-    async def wayan(state: MessagesState, runtime: Runtime[Context]) -> dict[str, Any]:
+    async def wayan(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
         """Reply to the guest as Wayan."""
         reply = await (model or default_model()).ainvoke(
             [SystemMessage(SYSTEM_PROMPT), *state["messages"]],
@@ -83,12 +96,25 @@ def build_graph(
         )
         return {"messages": [reply]}
 
-    builder: StateGraph[MessagesState, Context, MessagesState, MessagesState] = (
-        StateGraph(MessagesState, context_schema=Context)
+    def check(state: State) -> dict[str, Any]:
+        """Hold Wayan's reply to the reply contract before it is spoken."""
+        reply = state["messages"][-1]
+        checked = check_reply(reply.text)
+        # Same message ID, so add_messages replaces the raw reply: the thread
+        # remembers exactly what Wayan says.
+        return {
+            "messages": [reply.model_copy(update={"content": checked.text})],
+            "end_session": checked.end_session,
+        }
+
+    builder: StateGraph[State, Context, State, State] = StateGraph(
+        State, context_schema=Context
     )
     builder.add_node(wayan)
+    builder.add_node("check_reply", check)
     builder.add_edge(START, "wayan")
-    builder.add_edge("wayan", END)
+    builder.add_edge("wayan", "check_reply")
+    builder.add_edge("check_reply", END)
     return builder.compile(name="Wayan", checkpointer=checkpointer)
 
 
