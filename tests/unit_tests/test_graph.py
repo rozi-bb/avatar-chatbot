@@ -1,43 +1,21 @@
-from typing import Any
-
 import pytest
-from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_deepseek import ChatDeepSeek
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.pregel import Pregel
 
 from agent.graph import (
     MODEL_NAME,
-    THINKING_OFF,
+    THINKING,
+    THINKING_EFFORT,
     Context,
     build_graph,
     default_model,
     graph,
 )
 from agent.prompts import SYSTEM_PROMPT
-
-
-class PromptRecorder(AsyncCallbackHandler):
-    """Keeps the messages that each chat model call received."""
-
-    def __init__(self) -> None:
-        self.calls: list[list[BaseMessage]] = []
-        self.metadata: list[dict[str, Any]] = []
-
-    async def on_chat_model_start(
-        self,
-        serialized: dict[str, Any],
-        messages: list[list[BaseMessage]],
-        **kwargs: Any,
-    ) -> None:
-        self.calls.extend(messages)
-        self.metadata.append(kwargs.get("metadata") or {})
-
-
-def fake_model(*replies: str) -> GenericFakeChatModel:
-    return GenericFakeChatModel(messages=iter([AIMessage(r) for r in replies]))
+from unit_tests.fakes import PromptRecorder, fake_model
 
 
 def test_graph_builds_without_an_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -57,12 +35,12 @@ async def test_wayan_gets_his_persona_and_the_conversation() -> None:
 
     [sent] = recorder.calls
     assert isinstance(sent[0], SystemMessage)
-    assert sent[0].content == SYSTEM_PROMPT
+    assert sent[0].text.startswith(SYSTEM_PROMPT)
     assert isinstance(sent[-1], HumanMessage)
     assert [type(m) for m in result["messages"]] == [HumanMessage, AIMessage]
 
 
-def test_deepseek_runs_with_thinking_off(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_deepseek_thinks_briefly(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key-for-tests")
     default_model.cache_clear()
     try:
@@ -72,7 +50,8 @@ def test_deepseek_runs_with_thinking_off(monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert isinstance(model, ChatDeepSeek)
     assert model.model_name == MODEL_NAME
-    assert model.extra_body == THINKING_OFF
+    assert model.extra_body == THINKING
+    assert model.reasoning_effort == THINKING_EFFORT == "low"
 
 
 @pytest.mark.anyio
@@ -164,3 +143,15 @@ async def test_a_goodbye_ends_the_session() -> None:
 
     assert result["end_session"] is True
     assert "[bye]" not in result["messages"][-1].text
+
+
+@pytest.mark.anyio
+async def test_thinking_is_not_kept_in_the_thread() -> None:
+    thinking = AIMessage(
+        "[smile] Hi!", additional_kwargs={"reasoning_content": "Hmm..."}
+    )
+    model = GenericFakeChatModel(messages=iter([thinking]))
+
+    result = await build_graph(model).ainvoke({"messages": [HumanMessage("Hi!")]})
+
+    assert "reasoning_content" not in result["messages"][-1].additional_kwargs

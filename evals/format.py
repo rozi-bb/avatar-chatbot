@@ -8,23 +8,12 @@ and a look-alike doesn't. The format check here is written separately from
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
-from agent.reply import MAX_CHARS, SPOKEN_TAGS
+from evals.checks import end_session_correct, format_valid, guest
 
 DATASET = "wayan-format"
 DESCRIPTION = "Reply contract (docs/prd.md §6, §12): tags, length, no markdown, emoji or links; goodbyes end the session."
-
-
-def guest(*turns: str) -> dict[str, Any]:
-    """Return dataset inputs for a conversation; alternate turns are Wayan's."""
-    roles = ["user", "assistant"]
-    return {
-        "messages": [
-            {"role": roles[i % 2], "content": text} for i, text in enumerate(turns)
-        ]
-    }
 
 
 EXAMPLES: list[dict[str, Any]] = [
@@ -92,51 +81,6 @@ EXAMPLES: list[dict[str, Any]] = [
         "outputs": {"end_session": False},
     },
 ]
-
-
-def format_problems(text: str) -> list[str]:
-    """Return every way `text` breaks the reply contract; empty when it's fine."""
-    problems = []
-    tags = re.findall(r"\[([^\]]*)\]", text)
-    if not re.match(r"\[[a-z]+\]", text):
-        problems.append("doesn't start with a tag")
-    if bad := [t for t in tags if t not in SPOKEN_TAGS]:
-        problems.append(f"tags not allowed: {bad}")
-    if len(text) > MAX_CHARS:
-        problems.append(f"{len(text)} characters, over {MAX_CHARS}")
-    if re.search(r"[*#`|_~]|\n|^\s*[-•]\s|\(http", text, re.M):
-        problems.append("markdown")
-    if re.search(r'[{}]|"\s*\w+"\s*:', text):
-        problems.append("JSON")
-    if re.search(r"https?://|www\.", text, re.I):
-        problems.append("link")
-    if re.search("[\U0001f000-\U0001faff☀-➿]", text):
-        problems.append("emoji")
-    if not re.search(r"[A-Za-z]", re.sub(r"\[[^\]]*\]", "", text)):
-        problems.append("nothing to say")
-    return problems
-
-
-def format_valid(outputs: dict[str, Any]) -> dict[str, Any]:
-    """Code evaluator: the reply keeps the contract."""
-    problems = format_problems(outputs["reply"])
-    return {
-        "key": "format_valid",
-        "score": not problems,
-        "comment": "; ".join(problems) or "ok",
-    }
-
-
-def end_session_correct(
-    outputs: dict[str, Any], reference_outputs: dict[str, Any]
-) -> dict[str, Any]:
-    """Code evaluator: the session ends exactly when the guest is leaving."""
-    expected = reference_outputs["end_session"]
-    return {
-        "key": "end_session_correct",
-        "score": outputs["end_session"] == expected,
-        "comment": f"expected {expected}, got {outputs['end_session']}",
-    }
 
 
 EVALUATORS = [format_valid, end_session_correct]

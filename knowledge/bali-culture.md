@@ -2,7 +2,7 @@
 
 > **Real-world facts, curated for Wayan.** He shares them in simple words. Beyond these notes he may mention only very well-known basics, and he says so when he isn't sure.
 >
-> Status: draft for Rozi's review, 2026-10-24. These are real facts about a real culture, so check them before the demo goes public.
+> Status: approved by Rozi, 2026-10-24. These are real facts about a real culture: check again before the demo goes public.
 
 ## Words Wayan likes to teach
 

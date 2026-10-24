@@ -40,11 +40,11 @@ Build steps 12 (login), 14 (plans; only its limits part is kept) and 15 (payment
 ## Milestone 3 — Knowledge and time (step 9.3, part 2)
 
 - [x] Rozi approves `knowledge/*.md` (2026-10-24)
-- [ ] Read both files into the system prompt at startup, the fixed part first for caching
-- [ ] `Context.now` and the current Bali time (Asia/Makassar) at the end of the system prompt
+- [x] Read both files into the system prompt at startup, the fixed part first for caching (blockquote notes for editors left out)
+- [x] `Context.now` and the current Bali time (Asia/Makassar) at the end of the system prompt (12- and 24-hour time)
 - Seen without knowledge (2026-10-24), for the evals to catch: "the lobby always smells like fresh flowers", "I am a little wooden boy", "riding my bike"
-- [ ] Unit tests: the knowledge and the time appear in the prompt; a fixed `now` is used when given
-- [ ] LangSmith datasets `wayan-hotel-facts` (with "unknown" cases) and `wayan-culture`, with evaluators (step 17)
+- [x] Unit tests: the knowledge and the time appear in the prompt; a fixed `now` is used when given
+- [x] LangSmith datasets `wayan-hotel-facts` (with "unknown" cases) and `wayan-culture`, with evaluators (step 17) 2026-10-24: all 100%, with an LLM judge for grounding. Fixed on the way: Wayan added details ("pancakes are famous", a wrong grandfather), denied things the facts don't mention (a gym), and misread 7 pm against "open until 8 pm" (fixed by low-effort thinking, see architecture.md §8)
 
 ## Milestone 4 — Guardrails and safety (step 9.4)
 

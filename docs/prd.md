@@ -215,7 +215,7 @@ Measured with LangSmith evaluations (build step 17) on datasets grown from §15,
 | | |
 |---|---|
 | Budget | ≤ $5 per month for DeepSeek and Azure Speech (TTS and STT). Online, a daily cap of about $0.16 (the monthly budget ÷ 30); when it's used up, Wayan gives the fixed "resting" line |
-| Model | DeepSeek `deepseek-flash` (DeepSeek-V4.1-Flash) with thinking mode off, for speed. Listed price per 1M tokens: input $0.15 (cache miss) or $0.003 (cache hit), output $0.60; doubled in peak hours. Checked 2026-10-24 on DeepSeek's pricing page; prices may change |
+| Model | DeepSeek `deepseek-flash` (DeepSeek-V4.1-Flash) with thinking at low effort (architecture.md §8). Listed price per 1M tokens: input $0.15 (cache miss) or $0.003 (cache hit), output $0.60; doubled in peak hours. Checked 2026-10-24 on DeepSeek's pricing page; prices may change |
 | Cost per reply (estimate) | DeepSeek ≈ $0.0001–0.0002, because the ~3,500-token prompt is the same for everyone and stays cached. Azure TTS ≈ $0.004–0.0055 for 250 characters (the avatar PRD's $16–22 per 1M characters). TTS is the big cost: $5 covers roughly 900 replies before STT |
 | Session | At most 20 guest turns; a guest's message is cut at 300 characters |
 | Reply | At most 400 characters (the avatar's limit per utterance); target about 250 |
@@ -242,7 +242,7 @@ Assumptions:
 | The model invents hotel facts | Misinformation, even if fictional | One knowledge file, a strict rule, and "unknown" eval cases |
 | Culture notes are wrong | Embarrassing in a demo | Curated notes, reviewed by Rozi before going public |
 | DeepSeek is slow or down | Wayan goes silent | Timeout and the fixed error line |
-| Thinking mode is on by accident | Seconds of delay before every reply | Turned off explicitly in code and checked by a unit test |
+| Thinking runs at the default (high) effort | Seconds of delay before every reply | Low effort is set explicitly in code and checked by a unit test |
 | Costs grow once it's online | A surprise bill | Turn limit, daily cap, and the providers' own spending limits |
 | Kids say rude things or try tricks | Bad replies | Guardrails, plus tricky kid-style inputs in the evals |
 

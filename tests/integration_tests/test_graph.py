@@ -13,5 +13,5 @@ async def test_wayan_replies_through_deepseek() -> None:
     assert isinstance(reply, AIMessage)
     assert reply.text.strip()
     assert reply.response_metadata["model_name"].lower().startswith("deepseek")
-    # Thinking mode off: no chain of thought comes back.
+    # Wayan thinks before answering, but the thread keeps only what he says.
     assert not reply.additional_kwargs.get("reasoning_content")

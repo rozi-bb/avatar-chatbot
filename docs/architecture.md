@@ -181,7 +181,7 @@ Knowledge goes in whole, without retrieval: the two files are about 2,300 words 
 |---|---|---|
 | Guest turns per session | 20 | Fixed goodbye; the session ends |
 | Guest text | 300 characters | Cut |
-| Model output | 200 tokens (`max_tokens`) | Cut, then `check_reply` ends the reply at a sentence |
+| Model output | 800 tokens (`max_tokens`, thinking included) | Cut, then `check_reply` ends the reply at a sentence |
 | Model timeout | 20 s, 1 retry | Fixed error line |
 | Daily spend, online only | about $0.16 | Fixed "resting" line |
 
@@ -190,9 +190,9 @@ Knowledge goes in whole, without retrieval: the two files are about 2,300 words 
 | Setting | Value | Why |
 |---|---|---|
 | Model | `deepseek-flash` (DeepSeek-V4.1-Flash) | Fast and cheap. Checked against DeepSeek's `GET /models` on 2026-10-24: the only other model is `deepseek-v4-pro` |
-| Thinking | Off: `extra_body={"thinking": {"type": "disabled"}}` | Thinking is on by default and would add seconds before Wayan can speak |
+| Thinking | On, low effort: `reasoning_effort="low"`, `extra_body={"thinking": {"type": "enabled"}}` | Measured 2026-10-24 (10 tries each): thinking off answered "is the pool open now?" at 7 pm right 5/10 times, low effort 10/10. The first sentence comes 0.76 s (max 1.14 s) without thinking and 1.01 s (max 1.79 s) with it: within §12's targets. The default effort is high and much slower |
 | Temperature | DeepSeek's default for now | Tuned with the persona evals in build step 9 |
-| Max output | 200 tokens | Replies are short; it also caps cost |
+| Max output | 800 tokens | Thinking counts toward it; `check_reply` still limits what is said to 400 characters |
 | Timeout and retries | 20 s, 1 retry | A guest is standing there waiting |
 
 The model is created on first use (`default_model()`), so the graph imports without an API key and unit tests use a fake model (the CareDesk pattern).
@@ -228,7 +228,7 @@ avatar-chatbot/
 | 3 | Control tags (`[bye]`, `[help]`) instead of tool calls | They stream in order with the words, and need no extra round trip before Wayan speaks |
 | 4 | The reply contract is enforced in code | A prompt can be talked around; code can't (the CareDesk lesson) |
 | 5 | A rules screen before the model, with the model as backstop | No extra model call, so no extra wait, on every turn |
-| 6 | Thinking mode off | Speed |
+| 6 | Thinking on at low effort (first decided off, reversed after measuring) | Right answers about time cost only ~0.25 s more; thinking isn't kept in the thread |
 | 7 | Speech in the browser, text on the server | Reuses the avatar's speech code; no audio on our server |
 | 8 | Sessions in memory, deleted when they end | Nothing should outlive a guest's session |
 | 9 | Fixed lines for the greeting, idle, safety, and errors | Instant, predictable, and testable |

@@ -2,7 +2,8 @@
 
 Syncs each suite's dataset to LangSmith, runs the graph on every example as a
 new experiment, and exits non-zero if any score is below its target. Calls
-DeepSeek for real, so it costs a little money.
+DeepSeek for real, so it costs a little money. Name suites to run only those:
+uv run python -m evals.run hotel culture.
 """
 
 from __future__ import annotations
@@ -17,9 +18,10 @@ from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
 from langsmith import Client, aevaluate
 
 from agent.graph import MODEL_NAME, Context, graph
+from evals import culture, hotel
 from evals import format as format_suite
 
-SUITES = [format_suite]
+SUITES = {"format": format_suite, "hotel": hotel, "culture": culture}
 
 
 def sync_dataset(client: Client, suite: Any) -> None:
@@ -45,7 +47,8 @@ async def target(inputs: dict[str, Any]) -> dict[str, Any]:
         HumanMessage(m["content"]) if m["role"] == "user" else AIMessage(m["content"])
         for m in inputs["messages"]
     ]
-    state = await graph.ainvoke({"messages": messages}, context=Context(channel="eval"))
+    context = Context(channel="eval", now=inputs.get("now"))
+    state = await graph.ainvoke({"messages": messages}, context=context)
     return {"reply": state["messages"][-1].text, "end_session": state["end_session"]}
 
 
@@ -63,6 +66,8 @@ async def run_suite(suite: Any) -> bool:
     async for row in results:
         reply = row["run"].outputs or {}
         for result in row["evaluation_results"]["results"]:
+            if result.score is None:  # the evaluator doesn't apply to this example
+                continue
             scores[result.key].append(bool(result.score))
             if not result.score:
                 print(f"  FAIL {result.key}: {result.comment} | {reply.get('reply')!r}")
@@ -78,16 +83,16 @@ async def run_suite(suite: Any) -> bool:
     return passed
 
 
-async def main() -> int:
-    """Sync datasets, run every suite, and return the process exit code."""
+async def main(names: list[str]) -> int:
+    """Sync datasets, run the named suites (all by default), return the exit code."""
     load_dotenv(".env")
     client = Client()
     ok = True
-    for suite in SUITES:
+    for suite in [SUITES[name] for name in names or SUITES]:
         sync_dataset(client, suite)
         ok &= await run_suite(suite)
     return 0 if ok else 1
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
+    sys.exit(asyncio.run(main(sys.argv[1:])))

@@ -3,7 +3,7 @@
 > **Fictional.** Taman Gumitir and everyone in this file are made up for a portfolio demo.
 > This file is the only source of hotel facts: Wayan may state a hotel fact only if it is written here. If it isn't here, he doesn't know it.
 >
-> Status: draft for Rozi's review, 2026-10-24.
+> Status: approved by Rozi, 2026-10-24.
 
 ## At a glance
 
@@ -45,6 +45,8 @@
 | Ni Kadek Ayu Lestari | Putu's daughter, the manager since 2016 |
 | Pak Nengah | The rice farmer behind the hotel. The ducks are his |
 
+The family line: Ketut Rai → his son Made Sudana (with Nyoman Sekar) → their son Putu Arsa → his daughter Kadek Ayu Lestari. So Ketut Rai is Kadek Ayu's great-grandfather, and Made and Nyoman are her grandparents.
+
 ## The grounds
 
 - **The gate (*angkul-angkul*):** the carved gateway at the entrance, made by Ketut Rai in 1938. It is the only part of the old compound that was never rebuilt. Right behind it stands a short wall, the *aling-aling*, so you have to walk around it to come in.
@@ -60,20 +62,20 @@
 
 ## Facilities and times
 
-All times are Bali time (WITA).
+All times are Bali time (WITA); the 24-hour times are in brackets.
 
 | Place | Times | Notes |
 |---|---|---|
 | Front desk, in the lobby | 24 hours | Bookings, transport, tours, laundry, lost and found, and anything Wayan can't help with |
-| Check-in and check-out | Check-in from 2 pm, check-out by 12 noon | Late check-out: ask the front desk |
-| Warung Sari restaurant | Breakfast 7 to 10:30 am, lunch 12 to 3 pm, dinner 6 to 10 pm | Balinese and international dishes, with vegetarian options. Signature dish: Nyoman's bebek betutu, a slow-cooked spiced duck; order it at the front desk one day ahead |
-| Pool | 7 am to 8 pm | At the edge of the rice fields. No lifeguard, so children must be with an adult. Towels at the pool hut |
-| Bale Usada spa | 10 am to 8 pm | Balinese massage and flower baths. Book at the front desk |
-| Morning yoga | Every day, 6:30 to 7:30 am | In the open pavilion by the rice fields. Free for guests |
-| Offering workshop | Every day, 4 to 4:45 pm | Learn to make canang sari offerings in the courtyard. Free |
-| Balinese cooking class | Tuesday and Friday, 9 am to 12 noon | In the Warung Sari kitchen. Book at the front desk |
-| Gamelan and dance night | Wednesday and Saturday, 7:30 to 8:30 pm | In the courtyard, with Sekaa Gong Banjar Sekar. Free for guests |
-| Kids' corner | 9 am to 5 pm | Colouring, board games, and kite making. Children under six come with an adult |
+| Check-in and check-out | Check-in from 2 pm (14:00), check-out by 12 noon (12:00) | Late check-out: ask the front desk |
+| Warung Sari restaurant | Breakfast 7 to 10:30 am (07:00–10:30), lunch 12 to 3 pm (12:00–15:00), dinner 6 to 10 pm (18:00–22:00) | Balinese and international dishes, with vegetarian options. Breakfast still has banana pancakes, in honour of the 1968 homestay. Signature dish: Nyoman's bebek betutu, a slow-cooked spiced duck; order it at the front desk one day ahead |
+| Pool | 7 am to 8 pm (07:00–20:00) | At the edge of the rice fields. No lifeguard, so children must be with an adult. Towels at the pool hut |
+| Bale Usada spa | 10 am to 8 pm (10:00–20:00) | Balinese massage and flower baths. Book at the front desk |
+| Morning yoga | Every day, 6:30 to 7:30 am (06:30–07:30) | In the open pavilion by the rice fields. Free for guests |
+| Offering workshop | Every day, 4 to 4:45 pm (16:00–16:45) | Learn to make canang sari offerings in the courtyard. Free |
+| Balinese cooking class | Tuesday and Friday, 9 am to 12 noon (09:00–12:00) | In the Warung Sari kitchen. Book at the front desk |
+| Gamelan and dance night | Wednesday and Saturday, 7:30 to 8:30 pm (19:30–20:30) | In the courtyard, with Sekaa Gong Banjar Sekar. Free for guests |
+| Kids' corner | 9 am to 5 pm (09:00–17:00) | Colouring, board games, and kite making. Children under six come with an adult |
 | Library nook, in the lobby | Always open | Books about Bali and board games to borrow. The hotel's first guestbook, from 1968, is here too |
 | Wi-Fi | Everywhere, free | The network name and password are printed on the card in your key sleeve. Wayan never says passwords out loud |
 | Drinking water | Always | Refill stations in every room and by the pool |

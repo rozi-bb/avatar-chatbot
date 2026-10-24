@@ -1,16 +1,17 @@
 """Wayan, the little host of Taman Gumitir, a fictional heritage hotel in Bali.
 
-The model writes Wayan's reply, then code checks it against the reply
-contract before anyone hears it. The milestones in docs/roadmap.md add the
-knowledge pack and the safety route next; docs/architecture.md shows where it
-is heading.
+The model writes Wayan's reply from his persona, the knowledge pack, and the
+current Bali time; then code checks it against the reply contract before anyone
+hears it. docs/architecture.md shows the whole design.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from functools import cache
 from typing import Any, NotRequired
+from zoneinfo import ZoneInfo
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage
@@ -20,14 +21,18 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.runtime import Runtime
 from langgraph.types import Checkpointer
 
-from agent.prompts import SYSTEM_PROMPT
+from agent.prompts import SYSTEM_PROMPT, time_note
 from agent.reply import check_reply
 
 MODEL_NAME = "deepseek-flash"
 
-# Thinking is on by default for deepseek-flash and delays the first word by
-# seconds, which a voice conversation can't afford (docs/architecture.md §8).
-THINKING_OFF = {"thinking": {"type": "disabled"}}
+# A short think before answering: with thinking off, Wayan got "is the pool
+# open now?" at 7 pm right only 5 times in 10; with low effort, 10 in 10, for
+# about 0.25 s more before the first sentence (docs/architecture.md §8).
+THINKING = {"thinking": {"type": "enabled"}}
+THINKING_EFFORT = "low"
+
+BALI = ZoneInfo("Asia/Makassar")
 
 
 class State(MessagesState):
@@ -48,9 +53,22 @@ class Context:
     Attributes:
         channel: Where the run comes from: "studio", "kiosk", "eval", or "test".
             Recorded in the trace so runs can be filtered by source.
+        now: The time Wayan believes it is. None means the current Bali time;
+            evals pass a fixed time so their results repeat.
     """
 
     channel: str = "studio"
+    now: datetime | str | None = None
+
+
+def bali_now(ctx: Context) -> datetime:
+    """Return the run's current time in Bali, from the context or the clock."""
+    now = ctx.now
+    if isinstance(now, str):  # Studio sends the context as JSON
+        now = datetime.fromisoformat(now)
+    if now is None:
+        return datetime.now(BALI)
+    return now.astimezone(BALI) if now.tzinfo else now.replace(tzinfo=BALI)
 
 
 def run_metadata(runtime: Runtime[Context]) -> dict[str, Any]:
@@ -69,10 +87,11 @@ def default_model() -> BaseChatModel:
     """
     return ChatDeepSeek(
         model=MODEL_NAME,
-        max_tokens=200,
+        max_tokens=800,  # thinking counts too; check_reply limits what is said
         timeout=20,
         max_retries=1,
-        extra_body=THINKING_OFF,
+        reasoning_effort=THINKING_EFFORT,
+        extra_body=THINKING,
     )
 
 
@@ -90,8 +109,11 @@ def build_graph(
 
     async def wayan(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
         """Reply to the guest as Wayan."""
+        ctx = runtime.context or Context()
+        # The time goes last, after everything that is the same for every guest.
+        system = f"{SYSTEM_PROMPT}\n\n{time_note(bali_now(ctx))}"
         reply = await (model or default_model()).ainvoke(
-            [SystemMessage(SYSTEM_PROMPT), *state["messages"]],
+            [SystemMessage(system), *state["messages"]],
             config={"metadata": run_metadata(runtime)},
         )
         return {"messages": [reply]}
@@ -101,9 +123,16 @@ def build_graph(
         reply = state["messages"][-1]
         checked = check_reply(reply.text)
         # Same message ID, so add_messages replaces the raw reply: the thread
-        # remembers exactly what Wayan says.
+        # remembers exactly what Wayan says, without his thinking.
+        kept = {
+            k: v for k, v in reply.additional_kwargs.items() if k != "reasoning_content"
+        }
         return {
-            "messages": [reply.model_copy(update={"content": checked.text})],
+            "messages": [
+                reply.model_copy(
+                    update={"content": checked.text, "additional_kwargs": kept}
+                )
+            ],
             "end_session": checked.end_session,
         }
 
