@@ -1,54 +1,73 @@
-"""LangGraph single-node graph template.
+"""Wayan, the little host of Taman Gumitir, a fictional heritage hotel in Bali.
 
-Returns a predefined response. Replace logic and configuration as needed.
+Baseline graph (build step 8): one model call with Wayan's persona. The
+milestones in docs/roadmap.md add the reply contract, the knowledge pack, and
+the safety route; docs/architecture.md shows where it is heading.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict
+from functools import cache
+from typing import Any
 
-from langgraph.graph import StateGraph
-from langgraph.runtime import Runtime
-from typing_extensions import TypedDict
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import SystemMessage
+from langchain_deepseek import ChatDeepSeek
+from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import Checkpointer
+
+from agent.prompts import SYSTEM_PROMPT
+
+MODEL_NAME = "deepseek-flash"
+
+# Thinking is on by default for deepseek-flash and delays the first word by
+# seconds, which a voice conversation can't afford (docs/architecture.md §8).
+THINKING_OFF = {"thinking": {"type": "disabled"}}
 
 
-class Context(TypedDict):
-    """Context parameters for the agent.
+@cache
+def default_model() -> BaseChatModel:
+    """Return the DeepSeek model, created on first use.
 
-    Set these when creating assistants OR when invoking the graph.
-    See: https://langchain-ai.github.io/langgraph/cloud/how-tos/configuration_cloud/
+    Created lazily because ChatDeepSeek refuses to start without an API key,
+    and unit tests run without one.
+    """
+    return ChatDeepSeek(
+        model=MODEL_NAME,
+        max_tokens=200,
+        timeout=20,
+        max_retries=1,
+        extra_body=THINKING_OFF,
+    )
+
+
+def build_graph(
+    model: BaseChatModel | None = None,
+    checkpointer: Checkpointer = None,
+) -> CompiledStateGraph[MessagesState, None, MessagesState, MessagesState]:
+    """Build Wayan's graph.
+
+    Args:
+        model: Chat model for Wayan's replies. Defaults to DeepSeek; tests pass a fake.
+        checkpointer: Only for running the graph outside `langgraph dev`, which
+            stores threads itself.
     """
 
-    my_configurable_param: str
+    async def wayan(state: MessagesState) -> dict[str, Any]:
+        """Reply to the guest as Wayan."""
+        reply = await (model or default_model()).ainvoke(
+            [SystemMessage(SYSTEM_PROMPT), *state["messages"]]
+        )
+        return {"messages": [reply]}
+
+    builder: StateGraph[MessagesState, None, MessagesState, MessagesState] = StateGraph(
+        MessagesState
+    )
+    builder.add_node(wayan)
+    builder.add_edge(START, "wayan")
+    builder.add_edge("wayan", END)
+    return builder.compile(name="Wayan", checkpointer=checkpointer)
 
 
-@dataclass
-class State:
-    """Input state for the agent.
-
-    Defines the initial structure of incoming data.
-    See: https://langchain-ai.github.io/langgraph/concepts/low_level/#state
-    """
-
-    changeme: str = "example"
-
-
-async def call_model(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
-    """Process input and returns output.
-
-    Can use runtime context to alter behavior.
-    """
-    return {
-        "changeme": "output from call_model. "
-        f"Configured with {(runtime.context or {}).get('my_configurable_param')}"
-    }
-
-
-# Define the graph
-graph = (
-    StateGraph(State, context_schema=Context)
-    .add_node(call_model)
-    .add_edge("__start__", "call_model")
-    .compile(name="New Graph")
-)
+graph = build_graph()

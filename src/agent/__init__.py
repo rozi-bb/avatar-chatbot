@@ -1,7 +1,4 @@
-"""New LangGraph Agent.
-
-This module defines a custom graph.
-"""
+"""Wayan's agent: the LangGraph graph behind the lobby kiosk."""
 
 from agent.graph import graph
 
