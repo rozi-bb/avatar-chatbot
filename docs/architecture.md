@@ -179,7 +179,7 @@ Knowledge goes in whole, without retrieval: the two files are about 2,300 words 
 |---|---|---|
 | Guest turns per session | 20 | Fixed goodbye; the session ends |
 | Guest text | 300 characters | Cut |
-| Model output | 800 tokens (`max_tokens`, thinking included) | Cut, then `check_reply` ends the reply at a sentence |
+| Model output | 2000 tokens (`max_tokens`, thinking included; Indonesian jokes can think ~800) | Cut, then `check_reply` ends the reply at a sentence |
 | Model timeout | 20 s, 1 retry | Fixed error line |
 | Daily spend, online only | `DAILY_BUDGET_USD`, about $0.16 (estimated in `budget.py`, kept in memory) | Fixed "resting" line; the session ends |
 
@@ -189,8 +189,9 @@ Knowledge goes in whole, without retrieval: the two files are about 2,300 words 
 |---|---|---|
 | Model | `deepseek-flash` (DeepSeek-V4.1-Flash) | Fast and cheap. Checked against DeepSeek's `GET /models` on 2026-10-24: the only other model is `deepseek-v4-pro` |
 | Thinking | On, low effort: `reasoning_effort="low"`, `extra_body={"thinking": {"type": "enabled"}}` | Measured 2026-10-24 (10 tries each): thinking off answered "is the pool open now?" at 7 pm right 5/10 times, low effort 10/10. The first sentence comes 0.76 s (max 1.14 s) without thinking and 1.01 s (max 1.79 s) with it: within §12's targets. The default effort is high and much slower |
+| Thinking for jokes | Minimal effort when the guest asks for a joke, riddle, or funny story (`JOKE_REQUEST` in `graph.py`) | Measured 2026-10-26: Indonesian jokes waited 5.6 s median (up to 14 s) at low effort, 4.7 s (up to 8 s) at minimal, still funny; thinking off took 2 s but the jokes were flat. Told to take its first idea, the model told everyone the same riddle, so a joke turn also gets a random story topic and riddle kind (`joke_note`). The kiosk says a filler line after 2 s |
 | Temperature | DeepSeek's default for now | Tuned with the persona evals in build step 9 |
-| Max output | 800 tokens | Thinking counts toward it; `check_reply` still limits what is said to 400 characters |
+| Max output | 2000 tokens | Thinking counts toward it; `check_reply` still limits what is said to 400 characters |
 | Timeout and retries | 20 s, 1 retry | A guest is standing there waiting |
 
 The model is created on first use (`default_model()`), so the graph imports without an API key and unit tests use a fake model (the CareDesk pattern).

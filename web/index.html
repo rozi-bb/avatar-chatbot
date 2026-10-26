@@ -941,6 +941,7 @@
   const IDLE_CHECK_MS = 45000, IDLE_END_MS = 60000;
   const HEARD_CHARS = 48;      // the guest's caption keeps to one line: the latest words
   const HEARD_LINGER_MS = 6000; // if no reply replaces it, a final caption fades after this
+  const FILLER_MS = 2000; // a reply slower than this gets a filler line first, so the guest isn't left in silence
   // Names speech-to-text would otherwise mishear.
   const PHRASES = ["Wayan", "Taman Gumitir", "Gumitir", "Pak Bos", "Warung Sari", "Bale Usada", "Banjar Sekar",
     "frangipani", "Nyepi", "Galungan", "Kuningan", "canang sari", "bebek betutu", "babi guling", "subak", "gamelan",
@@ -972,6 +973,10 @@
     id: null,          // session ID; null while waiting for Start
     language: "en",    // picked before Start: "en" or "id"
     errorLine: null,   // said when the backend can't be reached; the backend sends it in the session's language
+    fillers: [],       // said while a slow reply is on its way; never part of the reply
+    filler: false,     // the piece being spoken is a filler
+    lastFiller: null,  // not said twice in a row
+    fillerTimer: null,
     state: "waiting",
     turn: 0,           // bumped on every new guest message, cut-in or stop; stale work checks it
     queue: [],         // pieces of the reply received but not yet spoken
@@ -1040,6 +1045,22 @@
     console.info(`[kiosk] Wayan started speaking ${seconds.toFixed(2)} s after the guest's words`);
   }
 
+  // A short "hmm, let me think" while a slow reply is still on its way. It is not
+  // part of the reply: not remembered as heard, and not sent back on a cut-in.
+  async function sayFiller(turn) {
+    if (turn !== convo.turn || convo.speaking || convo.queue.length || !convo.fillers.length) return;
+    const pick = convo.fillers.filter((f) => f !== convo.lastFiller);
+    const text = convo.lastFiller = pick[Math.floor(Math.random() * pick.length)];
+    Object.assign(convo, { speaking: true, filler: true, current: text });
+    setState("speaking");
+    await speak(text, VOICES[convo.language]);
+    if (turn !== convo.turn) return;
+    Object.assign(convo, { speaking: false, filler: false, current: "" });
+    if (convo.queue.length) return pump();
+    if (convo.replyDone) replyFinished();
+    else setState("thinking");
+  }
+
   // Speaks queued pieces one after another; pieces that arrive meanwhile are joined.
   async function pump() {
     if (!convo.id || convo.speaking || !convo.queue.length) return;
@@ -1091,6 +1112,8 @@
     clearIdle();
     setState("thinking");
     convo.sentAt = performance.now();
+    clearTimeout(convo.fillerTimer);
+    convo.fillerTimer = setTimeout(() => sayFiller(turn), FILLER_MS);
     const abort = convo.abort = new AbortController();
     try {
       const res = await fetch(`/sessions/${convo.id}/messages`, {
@@ -1100,12 +1123,13 @@
       if (!res.ok) throw new Error(res.statusText);
       for await (const [event, data] of readEvents(res.body)) {
         if (turn !== convo.turn) return;
-        if (event === "sentence" || event === "error") { convo.queue.push(data.text); pump(); }
+        if (event === "sentence" || event === "error") { clearTimeout(convo.fillerTimer); convo.queue.push(data.text); pump(); }
         if (event === "done") { convo.replyId = data.message_id; convo.endAfter = data.end_session; }
       }
     } catch (err) {
       if (abort.signal.aborted || turn !== convo.turn) return;
       console.warn("[kiosk] reply failed", err);
+      clearTimeout(convo.fillerTimer);
       convo.queue.push(convo.errorLine);
       pump();
     }
@@ -1118,7 +1142,7 @@
   // pieces spoken in full plus the words of the current piece already lit up.
   function cutIn() {
     const heard = [...convo.heard];
-    if (convo.speaking && session && !session.done) {
+    if (convo.speaking && !convo.filler && session && !session.done) {
       const t = audioNow(session);
       const words = session.subWords.filter((w) => w.at !== undefined && w.at <= t).map((w) => w.text);
       if (words.length) heard.push(words.join(" "));
@@ -1127,7 +1151,8 @@
     if (spoken || convo.replyId) convo.cut = { message_id: convo.replyId, spoken_text: spoken };
     convo.turn++;
     if (convo.abort) convo.abort.abort();
-    Object.assign(convo, { queue: [], speaking: false, current: "" });
+    clearTimeout(convo.fillerTimer);
+    Object.assign(convo, { queue: [], speaking: false, filler: false, current: "" });
     stop();
     setState("listening");
   }
@@ -1211,8 +1236,8 @@
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: convo.language }),
       });
       if (!res.ok) throw new Error(res.statusText);
-      const { session_id, greeting, error_line } = await res.json();
-      Object.assign(convo, { id: session_id, errorLine: error_line, idleChecked: false, cut: null });
+      const { session_id, greeting, error_line, fillers } = await res.json();
+      Object.assign(convo, { id: session_id, errorLine: error_line, fillers, idleChecked: false, cut: null });
       startListening().catch((err) => setStatus("No microphone: " + err.message + (typing ? "" : " (add ?type=1 to type instead)"), true));
       Object.assign(convo, { queue: [greeting], heard: [], replyId: null, replyDone: true, endAfter: false });
       pump();
@@ -1229,7 +1254,8 @@
     stopListening();
     stop();
     hideHeard();
-    Object.assign(convo, { id: null, queue: [], heard: [], current: "", speaking: false, cut: null, sentAt: null });
+    clearTimeout(convo.fillerTimer);
+    Object.assign(convo, { id: null, queue: [], heard: [], current: "", speaking: false, filler: false, cut: null, sentAt: null });
     setState("waiting");
   }
 

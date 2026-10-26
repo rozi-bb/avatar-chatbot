@@ -7,10 +7,12 @@ from langgraph.pregel import Pregel
 
 from agent import lines
 from agent.graph import (
+    JOKE_THINKING_EFFORT,
     MODEL_NAME,
     THINKING,
     THINKING_EFFORT,
     Context,
+    asks_for_a_joke,
     build_graph,
     default_model,
     graph,
@@ -232,3 +234,54 @@ async def test_a_guest_who_asks_something_is_not_sent_away() -> None:
 
     assert result["end_session"] is False
     assert "[bye]" not in result["messages"][-1].text
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Tell me a joke!",
+        "Do you know any funny stories?",
+        "Give me a riddle",
+        "Knock knock!",
+        "Ceritain cerita lucu dong!",
+        "Kasih tebak-tebakan dong",
+        "Ada lelucon nggak?",
+    ],
+)
+def test_joke_requests_are_spotted(text: str) -> None:
+    assert asks_for_a_joke(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Is the pool open now?",
+        "Tell me the story of the hotel",
+        "Ceritakan sejarah hotel ini",
+        "Nggak tahu, apa jawabannya?",
+    ],
+)
+def test_other_messages_are_not_jokes(text: str) -> None:
+    assert not asks_for_a_joke(text)
+
+
+@pytest.mark.anyio
+async def test_only_a_joke_request_thinks_minimally() -> None:
+    recorder = PromptRecorder()
+    wayan = build_graph(
+        fake_model("[smile] Coba tebak!", "[smile] Jam tujuh pagi."),
+        checkpointer=InMemorySaver(),
+    )
+    session = {"configurable": {"thread_id": "guest-1"}, "callbacks": [recorder]}
+
+    await wayan.ainvoke(
+        {"messages": [HumanMessage("Kasih tebak-tebakan dong")]}, session
+    )
+    await wayan.ainvoke({"messages": [HumanMessage("Kolam buka jam berapa?")]}, session)
+
+    joke, question = recorder.params
+    assert joke.get("reasoning_effort") == JOKE_THINKING_EFFORT
+    assert "reasoning_effort" not in question
+    joke_prompt, question_prompt = (call[0].text for call in recorder.calls)
+    assert "JOKE TOPIC" in joke_prompt
+    assert "JOKE TOPIC" not in question_prompt

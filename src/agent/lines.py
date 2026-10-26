@@ -21,6 +21,8 @@ class Lines:
     Attributes:
         greetings: Said when a guest presses Start; one is picked at random.
             Each opens with [salam] Om Swastiastu, the same welcome every time.
+        fillers: Said by the kiosk page when a reply takes more than 2 s, so the
+            guest isn't left in silence; one is picked at random. Never stored.
         still_there: Said after 45 s of quiet.
         idle_goodbye: Said after 60 s of quiet; ends the session.
         emergency: The reply to an emergency.
@@ -32,6 +34,7 @@ class Lines:
     """
 
     greetings: tuple[str, ...]
+    fillers: tuple[str, ...]
     still_there: str
     idle_goodbye: str
     emergency: str
@@ -46,6 +49,7 @@ class Lines:
         """Every line, for tests that check them all."""
         return (
             *self.greetings,
+            *self.fillers,
             self.still_there,
             self.idle_goodbye,
             self.emergency,
@@ -65,6 +69,11 @@ ENGLISH = Lines(
         "or a fun fact about Bali?",
         "[salam] Om Swastiastu, welcome to Taman Gumitir! I'm Wayan, your little "
         "host. What would you like to know?",
+    ),
+    fillers=(
+        "[smile] Hmm, wait a second, let me think...",
+        "[smile] Ooh, hold on, I'm remembering...",
+        "[smile] Hmm, just a moment...",
     ),
     still_there="[smile] Are you still there? I'm right here if you want to chat.",
     idle_goodbye="[smile] Okay, I'll be right here when you need me. Bye bye!",
@@ -99,6 +108,11 @@ INDONESIAN = Lines(
         "atau fakta seru soal Bali?",
         "[salam] Om Swastiastu, selamat datang di Taman Gumitir! Aku Wayan, tuan "
         "rumah cilikmu. Mau tahu apa nih?",
+    ),
+    fillers=(
+        "[smile] Hmm, sebentar ya, aku ingat-ingat dulu...",
+        "[smile] Ooh, tunggu ya, aku pikir dulu...",
+        "[smile] Hmm, sebentar...",
     ),
     still_there="[smile] Masih di situ? Aku di sini kok kalau mau ngobrol lagi.",
     idle_goodbye="[smile] Oke, aku tunggu di sini ya kalau butuh aku. Dadah!",

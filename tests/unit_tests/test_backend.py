@@ -107,6 +107,7 @@ async def test_an_indonesian_session_speaks_indonesian_throughout() -> None:
 
         assert body["greeting"] in lines.INDONESIAN.greetings
         assert body["error_line"] == lines.INDONESIAN.error
+        assert body["fillers"] == list(lines.INDONESIAN.fillers)
         await say(client, session_id, "Halo!")
         assert language_note("id") in recorder.calls[0][0].text
         found = await say(client, session_id, "Tolong! Anakku hilang!")
@@ -123,6 +124,7 @@ async def test_a_session_without_a_language_is_english() -> None:
 
         assert body["greeting"] in lines.ENGLISH.greetings
         assert body["error_line"] == lines.ENGLISH.error
+        assert body["fillers"] == list(lines.ENGLISH.fillers)
 
 
 async def test_an_unknown_language_is_refused() -> None:

@@ -185,6 +185,7 @@ Fixed lines (spoken through the avatar, tags included):
 | Use | Text |
 |---|---|
 | Greeting, one picked at random; always opens with `[salam] Om Swastiastu` | `[salam] Om Swastiastu! I'm Wayan, the little host of Taman Gumitir. Ask me anything about our hotel or Bali!` · `[salam] Om Swastiastu! I'm Wayan. Want to hear a story about this hotel, or a fun fact about Bali?` · `[salam] Om Swastiastu, welcome to Taman Gumitir! I'm Wayan, your little host. What would you like to know?` |
+| Filler while a reply takes more than 2 s (said by the page, never stored), one picked at random | `[smile] Hmm, wait a second, let me think...` · `[smile] Ooh, hold on, I'm remembering...` · `[smile] Hmm, just a moment...` |
 | Still there? (45 s) | `[smile] Are you still there? I'm right here if you want to chat.` |
 | Goodbye after silence (60 s) | `[smile] Okay, I'll be right here when you need me. Bye bye!` |
 | Emergency | `[neutral] This sounds important! Please go to the front desk in the lobby right now, or ask any staff member. If someone is in danger, call 112.` |

@@ -237,11 +237,12 @@ def create_app(
         )
 
     @app.post("/sessions")
-    async def start_session(body: NewSession | None = None) -> dict[str, str]:
+    async def start_session(body: NewSession | None = None) -> dict[str, Any]:
         """Start a session when the guest presses Start; Wayan greets first.
 
         Also returns the session's error line, which the page says itself when
-        the backend can't be reached at all.
+        the backend can't be reached at all, and the fillers it says while a
+        slow reply is on its way.
         """
         await clear_abandoned()
         language = body.language if body else "en"
@@ -253,6 +254,7 @@ def create_app(
             "session_id": session.id,
             "greeting": greeting,
             "error_line": lines.error,
+            "fillers": list(lines.fillers),
         }
 
     @app.post("/sessions/{session_id}/messages")

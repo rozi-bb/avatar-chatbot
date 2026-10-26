@@ -8,14 +8,17 @@ contract before anyone hears it. docs/architecture.md shows the whole design.
 
 from __future__ import annotations
 
+import random
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
 from typing import Any, NotRequired
 from zoneinfo import ZoneInfo
 
-from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.language_models import BaseChatModel, LanguageModelInput
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langchain_deepseek import ChatDeepSeek
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -34,6 +37,33 @@ MODEL_NAME = "deepseek-flash"
 # about 0.25 s more before the first sentence (docs/architecture.md §8).
 THINKING = {"thinking": {"type": "enabled"}}
 THINKING_EFFORT = "low"
+
+# Jokes think longest: the model tries idea after idea, and Indonesian ones
+# waited 5.6 s (median, up to 14 s) for the first word. Minimal effort keeps
+# them funny at 4.7 s (up to 8 s); with thinking off they came out flat
+# (measured 2026-10-26). The kiosk's filler line covers the rest.
+JOKE_THINKING_EFFORT = "minimal"
+JOKE_REQUEST = re.compile(
+    r"""\b(?:jokes?|funny|riddles?|knock[\s-]?knock|make\ me\ laugh|
+        lucu|lelucon|lawak\w*|ngelawak|tebak[\s-]?tebak\w*|tebakan|humor|receh)\b""",
+    re.IGNORECASE | re.VERBOSE,
+)
+# Told to go with its first idea, the model told every guest the same story
+# and the same riddle, so a joke turn gets a random topic for a story and a
+# broad kind for a riddle. Topics only, not jokes: the model still picks the
+# joke. A riddle gets a broad kind, not a topic: made up to fit a narrow topic,
+# its answer was lost by the next turn, because thinking isn't kept.
+JOKE_TOPICS = (
+    "a cat, a monkey, a frog, a gecko, a turtle, a snail, an ant, a mosquito, a goat, "
+    "a dog, a crab, a fish, an elephant, a chicken, school, a teacher, homework, "
+    "a banana, a coconut, rice, ice cream, the rain, the sun, the moon, a kite, "
+    "a bicycle, shoes, an umbrella, a tooth, a pillow, a mirror, a clock"
+).split(", ")
+RIDDLE_KINDS = (
+    "an animal; food or fruit; something at home; something at school; the body; "
+    "the weather or the sky; something you ride; a word that turns into another "
+    "word; numbers or counting; clothes"
+).split("; ")
 
 BALI = ZoneInfo("Asia/Makassar")
 
@@ -78,6 +108,20 @@ def bali_now(ctx: Context) -> datetime:
     return now.astimezone(BALI) if now.tzinfo else now.replace(tzinfo=BALI)
 
 
+def asks_for_a_joke(text: str) -> bool:
+    """Return True when the guest asks for a joke, a riddle, or a funny story."""
+    return JOKE_REQUEST.search(text) is not None
+
+
+def joke_note() -> str:
+    """Return the note that starts a funny story or a riddle from a random topic."""
+    return (
+        "JOKE TOPIC, unless the guest asked for another one: a new funny story now "
+        f"is about {random.choice(JOKE_TOPICS)}; a new riddle is a well-known one "
+        f"about {random.choice(RIDDLE_KINDS)}."
+    )
+
+
 def run_metadata(runtime: Runtime[Context]) -> dict[str, Any]:
     """Return the trace metadata for a run: its session and its channel."""
     ctx = runtime.context or Context()
@@ -94,7 +138,7 @@ def default_model() -> BaseChatModel:
     """
     return ChatDeepSeek(
         model=MODEL_NAME,
-        max_tokens=800,  # thinking counts too; check_reply limits what is said
+        max_tokens=2000,  # thinking counts too, and Indonesian jokes can think ~800 tokens; check_reply limits what is said
         timeout=20,
         max_retries=1,
         reasoning_effort=THINKING_EFFORT,
@@ -123,7 +167,11 @@ def build_graph(
             f"{SYSTEM_PROMPT}\n\n{language_note(ctx.language)}\n\n"
             f"{time_note(bali_now(ctx))}"
         )
-        reply = await (model or default_model()).ainvoke(
+        chat: Runnable[LanguageModelInput, BaseMessage] = model or default_model()
+        if asks_for_a_joke(state["messages"][-1].text):
+            chat = chat.bind(reasoning_effort=JOKE_THINKING_EFFORT)
+            system += f"\n\n{joke_note()}"
+        reply = await chat.ainvoke(
             [SystemMessage(system), *state["messages"]],
             config={"metadata": run_metadata(runtime)},
         )
