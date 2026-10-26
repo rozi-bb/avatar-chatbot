@@ -155,7 +155,7 @@ Knowledge goes in whole, without retrieval: the two files are about 2,300 words 
 
 ## 5. The reply contract (agent → kiosk)
 
-- Plain text in the session's language, with tags. Face and gesture tags are the avatar's English names: `[smile] [neutral] [surprised] [sad] [laugh] [thumbsup]`. Two control tags are never spoken: `[bye]` and `[help]`.
+- Plain text in the session's language, with tags. Face and gesture tags are the avatar's English names: `[smile] [neutral] [surprised] [sad] [laugh] [thumbsup] [salam]` (`[salam]` only opens the fixed greetings). Two control tags are never spoken: `[bye]` and `[help]`.
 - No markdown, emoji, links, or lists. At most 400 characters per reply (the avatar's limit); about 250 is the target.
 - The backend sends one event per checked sentence, so Wayan starts talking after the first sentence instead of after the whole reply. The same check function runs on each streamed sentence and on the final stored message, so what Wayan says and what the thread remembers match.
 

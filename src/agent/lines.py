@@ -20,6 +20,7 @@ class Lines:
 
     Attributes:
         greetings: Said when a guest presses Start; one is picked at random.
+            Each opens with [salam] Om Swastiastu, the same welcome every time.
         still_there: Said after 45 s of quiet.
         idle_goodbye: Said after 60 s of quiet; ends the session.
         emergency: The reply to an emergency.
@@ -58,12 +59,12 @@ class Lines:
 
 ENGLISH = Lines(
     greetings=(
-        "[smile] Om Swastiastu! I'm Wayan, the little host of Taman Gumitir. "
+        "[salam] Om Swastiastu! I'm Wayan, the little host of Taman Gumitir. "
         "Ask me anything about our hotel or Bali!",
-        "[smile] Hello hello! I'm Wayan. Want to hear a story about this hotel, "
+        "[salam] Om Swastiastu! I'm Wayan. Want to hear a story about this hotel, "
         "or a fun fact about Bali?",
-        "[thumbsup] Welcome to Taman Gumitir! I'm Wayan, your little host. "
-        "What would you like to know?",
+        "[salam] Om Swastiastu, welcome to Taman Gumitir! I'm Wayan, your little "
+        "host. What would you like to know?",
     ),
     still_there="[smile] Are you still there? I'm right here if you want to chat.",
     idle_goodbye="[smile] Okay, I'll be right here when you need me. Bye bye!",
@@ -92,12 +93,12 @@ ENGLISH = Lines(
 
 INDONESIAN = Lines(
     greetings=(
-        "[smile] Om Swastiastu! Aku Wayan, tuan rumah cilik Taman Gumitir. "
+        "[salam] Om Swastiastu! Aku Wayan, tuan rumah cilik Taman Gumitir. "
         "Tanya apa aja soal hotel kami atau Bali, ya!",
-        "[smile] Halo halo! Aku Wayan. Mau dengar cerita tentang hotel ini, "
+        "[salam] Om Swastiastu! Aku Wayan. Mau dengar cerita tentang hotel ini, "
         "atau fakta seru soal Bali?",
-        "[thumbsup] Selamat datang di Taman Gumitir! Aku Wayan, tuan rumah cilikmu. "
-        "Mau tahu apa nih?",
+        "[salam] Om Swastiastu, selamat datang di Taman Gumitir! Aku Wayan, tuan "
+        "rumah cilikmu. Mau tahu apa nih?",
     ),
     still_there="[smile] Masih di situ? Aku di sini kok kalau mau ngobrol lagi.",
     idle_goodbye="[smile] Oke, aku tunggu di sini ya kalau butuh aku. Dadah!",

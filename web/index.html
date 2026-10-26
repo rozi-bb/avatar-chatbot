@@ -178,6 +178,7 @@
     sedih:  { expr: 3 }, sad: { expr: 3 },
     ketawa: { expr: 4, laugh: true }, laugh: { expr: 4, laugh: true },
     jempol: { expr: 1, gesture: "jempol" }, thumbsup: { expr: 1, gesture: "jempol" },
+    salam: { expr: 1, gesture: "salam" },
   };
 
   // ---- Rive -----------------------------------------------------------------
@@ -196,8 +197,8 @@
   const setTalking = (on) => { if (vm) vm.boolean("talking").value = on; };
 
   // Gestures on the Aksi layer: FaceVM.action picks the timeline, 0 returns to rest.
-  // Om Swastiastu plays once when Wayan first appears; the thumbs-up comes from a
-  // [jempol] tag in the text; the udeng slipping and being pushed back up fills the
+  // Om Swastiastu plays once when Wayan first appears and again with the [salam] that
+  // opens every greeting; the thumbs-up comes from a [jempol] tag in the text; the udeng slipping and being pushed back up fills the
   // idle time. The free Rive runtime shows a black splash for a few seconds after
   // loading, so the greeting waits until sampled canvas pixels stop being opaque black.
   const GESTURES = {

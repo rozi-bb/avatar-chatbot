@@ -105,6 +105,7 @@ Tags go inside the text. They are the English names the avatar already accepts (
 | `[sad]` | Sad face | Sympathy, "sorry" |
 | `[laugh]` | Laugh sound and happy eyes | At most once per reply, and only when something is funny |
 | `[thumbsup]` | Thumbs-up gesture with a smile | Praise, a right answer, "great choice!" |
+| `[salam]` | Hands pressed together for Om Swastiastu, with a smile | Opens every greeting at Start (a fixed line, not for the model) |
 | `[bye]` | Nothing; never spoken | Ends the session after this reply. Only when the guest is leaving |
 
 Every reply starts with a face tag; another one follows only when the feeling changes. Unknown tags are dropped, both by our reply check and by the avatar.
@@ -183,7 +184,7 @@ Fixed lines (spoken through the avatar, tags included):
 
 | Use | Text |
 |---|---|
-| Greeting, one picked at random | `[smile] Om Swastiastu! I'm Wayan, the little host of Taman Gumitir. Ask me anything about our hotel or Bali!` · `[smile] Hello hello! I'm Wayan. Want to hear a story about this hotel, or a fun fact about Bali?` · `[thumbsup] Welcome to Taman Gumitir! I'm Wayan, your little host. What would you like to know?` |
+| Greeting, one picked at random; always opens with `[salam] Om Swastiastu` | `[salam] Om Swastiastu! I'm Wayan, the little host of Taman Gumitir. Ask me anything about our hotel or Bali!` · `[salam] Om Swastiastu! I'm Wayan. Want to hear a story about this hotel, or a fun fact about Bali?` · `[salam] Om Swastiastu, welcome to Taman Gumitir! I'm Wayan, your little host. What would you like to know?` |
 | Still there? (45 s) | `[smile] Are you still there? I'm right here if you want to chat.` |
 | Goodbye after silence (60 s) | `[smile] Okay, I'll be right here when you need me. Bye bye!` |
 | Emergency | `[neutral] This sounds important! Please go to the front desk in the lobby right now, or ask any staff member. If someone is in danger, call 112.` |

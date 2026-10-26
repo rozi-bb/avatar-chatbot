@@ -107,3 +107,10 @@ def test_fixed_lines_come_in_the_session_language() -> None:
 def test_fixed_lines_follow_the_contract(language: lines.Language, line: str) -> None:
     assert check_reply(line, language).text == line
     assert set(tags(line)) <= SPOKEN_TAGS
+
+
+@pytest.mark.parametrize("said", lines.BY_LANGUAGE.values())
+def test_every_greeting_opens_with_the_salam_welcome(said: lines.Lines) -> None:
+    for greeting in said.greetings:
+        assert tags(greeting)[0] == "salam"
+        assert "Om Swastiastu" in greeting.split(".")[0]

@@ -15,7 +15,7 @@ MAX_CHARS = 400
 """The avatar's limit per utterance, tags included."""
 
 FACE_TAGS = frozenset({"smile", "neutral", "surprised", "sad", "laugh"})
-SPOKEN_TAGS = FACE_TAGS | {"thumbsup"}
+SPOKEN_TAGS = FACE_TAGS | {"thumbsup", "salam"}
 
 TAG = re.compile(r"\[\s*([A-Za-z]+)\s*\]")
 BRACKETS = re.compile(r"\[([^\]]*)\]")
