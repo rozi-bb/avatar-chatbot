@@ -170,7 +170,7 @@ async def test_an_emergency_gets_the_fixed_line_without_the_model() -> None:
 
     assert recorder.calls == []
     assert result["route"] == "emergency"
-    assert result["messages"][-1].text == lines.EMERGENCY
+    assert result["messages"][-1].text == lines.ENGLISH.emergency
     assert result["end_session"] is False
 
 
@@ -181,7 +181,23 @@ async def test_a_request_for_a_person_gets_the_staff_line() -> None:
     )
 
     assert result["route"] == "staff"
-    assert result["messages"][-1].text == lines.STAFF
+    assert result["messages"][-1].text == lines.ENGLISH.staff
+
+
+@pytest.mark.anyio
+async def test_fixed_lines_follow_the_session_language() -> None:
+    graph = build_graph(fake_model("[help]"))
+    indonesian = Context(language="id")
+
+    emergency = await graph.ainvoke(
+        {"messages": [HumanMessage("Tolong! Anakku hilang!")]}, context=indonesian
+    )
+    tagged = await graph.ainvoke(
+        {"messages": [HumanMessage("Kakekku jatuh, dia diam saja")]}, context=indonesian
+    )
+
+    assert emergency["messages"][-1].text == lines.INDONESIAN.emergency
+    assert tagged["messages"][-1].text == lines.INDONESIAN.emergency
 
 
 @pytest.mark.anyio
@@ -203,7 +219,7 @@ async def test_a_help_tag_from_the_model_becomes_the_emergency_line() -> None:
     )
 
     assert result["route"] == "normal"
-    assert result["messages"][-1].text == lines.EMERGENCY
+    assert result["messages"][-1].text == lines.ENGLISH.emergency
 
 
 @pytest.mark.anyio

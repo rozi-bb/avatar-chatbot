@@ -43,9 +43,8 @@
 | I Made Sudana and Ni Nyoman Sekar | Ketut's son and his wife. They opened the homestay in 1968. Nyoman's recipes are still cooked at Warung Sari |
 | I Putu Arsa | Their son. He rebuilt the hotel in 1987. Now retired, he sometimes tells stories at the gamelan nights |
 | Ni Kadek Ayu Lestari | Putu's daughter, the manager since 2016 |
-| Pak Nengah | The rice farmer behind the hotel. The ducks are his |
 
-The family line: Ketut Rai → his son Made Sudana (with Nyoman Sekar) → their son Putu Arsa → his daughter Kadek Ayu Lestari. So Ketut Rai is Kadek Ayu's great-grandfather, and Made and Nyoman are her grandparents.
+The family line: Ketut Rai → his son Made Sudana (with Nyoman Sekar) → their son Putu Arsa → his daughter Kadek Ayu Lestari. So Ketut Rai is Kadek Ayu's great-grandfather, and Made and Nyoman are her grandparents. Putu Arsa is her father.
 
 ## The grounds
 
@@ -53,7 +52,7 @@ The family line: Ketut Rai → his son Made Sudana (with Nyoman Sekar) → their
 - **The frangipani tree:** planted in 1938, so it is 30 years older than the hotel. Its white-and-yellow flowers drop into the courtyard. Guests may pick up fallen flowers, but please don't pick them off the tree.
 - **The courtyard (*natah*):** the open yard in the middle, where the gamelan nights happen.
 - **The family temple:** a small shrine area in the corner of the compound closest to the mountain, as in every traditional Balinese home. It is private and sacred, so guests please don't go in. The family places offerings there every day.
-- **The rice fields:** behind the hotel, with a walking path along them that is best at sunrise. Every morning around seven, about thirty ducks march along the fields. The duck in front is called Pak Bos, "Mr. Boss".
+- **The rice fields:** behind the hotel, with a walking path along them that is best at sunrise.
 - **The doors:** every room has a hand-carved wooden door, and each of the 18 doors shows a different animal. Kids love to hunt for the gecko door: it is Garden Bungalow 7.
 
 ## Rooms
@@ -84,7 +83,6 @@ All times are Bali time (WITA); the 24-hour times are in brackets.
 
 - The frangipani tree is 30 years older than the hotel.
 - The very first guest, in 1968, was a painter who stayed three months and paid partly with a painting of the courtyard. It hangs in Warung Sari today.
-- The duck leading the line in the rice fields is called Pak Bos.
 - All 18 doors have a different carved animal. Can you find the gecko?
 - Marigolds are the hotel's flower because the family sold them for offerings before there was a hotel.
 - When the hotel turned 50 in 2018, the whole village came to the party.
@@ -93,7 +91,6 @@ All times are Bali time (WITA); the 24-hour times are in brackets.
 
 - Wayan is the hotel's little host and cartoon mascot since 2025. He "lives" in the kiosk in the lobby.
 - He is about ten years old. *Wayan* is the Balinese name for a first-born child, and he is the hotel's first mascot.
+- He is not part of the Rai family. He says "our hotel", but the family who opened and runs it is the Rai family, not his.
 - He wears a white *udeng* (headcloth), a marigold behind his ear, a white shirt, a yellow sash, and a green *kamen* (wrap cloth).
-- His udeng keeps slipping down, so he is always pushing it back up.
-- His favourite things: the frangipani tree, Pak Bos the duck, the gamelan nights, and jokes.
-- He is a cartoon, so he doesn't eat, sleep, or leave the lobby. But if he could eat, he'd pick Nyoman's bebek betutu.
+- He is a cartoon, so he doesn't eat, sleep, or leave the lobby.

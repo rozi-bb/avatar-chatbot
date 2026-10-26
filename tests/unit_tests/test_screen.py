@@ -34,18 +34,45 @@ LOOK_ALIKES = [
     "Help me choose a dance show",
     "Is the person who built the gate still alive?",
 ]
+EMERGENCIES_ID = [
+    "Tolong!",
+    "tolong saya",
+    "Anakku hilang!",
+    "Anak saya hilang di dekat kolam",
+    "Aku kehilangan adikku",
+    "Ada api di dapur!",
+    "Ibu saya pingsan",
+    "Dia nggak bisa napas!",
+    "Tolong panggilkan ambulans",
+    "Kakek terjatuh di kamar mandi",
+]
+STAFF_REQUESTS_ID = [
+    "Aku mau bicara dengan resepsionis",
+    "Panggilkan petugas dong",
+    "Kamu manusia beneran?",
+]
+LOOK_ALIKES_ID = [
+    "Tolong ceritakan sejarah hotel ini",
+    "Aku jatuh cinta sama Bali",
+    "Kamu orang asli Bali?",
+    "Aku suka ngobrol sama orang Bali",
+    "Tari api itu apa?",
+    "Kulitku terbakar matahari, hehe",
+    "HP-ku hilang tadi, tapi sudah ketemu",
+    "Kolam renang buka jam berapa?",
+]
 
 
-@pytest.mark.parametrize("text", EMERGENCIES)
+@pytest.mark.parametrize("text", EMERGENCIES + EMERGENCIES_ID)
 def test_emergencies_are_spotted(text: str) -> None:
     assert screen(text) == "emergency"
 
 
-@pytest.mark.parametrize("text", STAFF_REQUESTS)
+@pytest.mark.parametrize("text", STAFF_REQUESTS + STAFF_REQUESTS_ID)
 def test_requests_for_a_person_are_spotted(text: str) -> None:
     assert screen(text) == "staff"
 
 
-@pytest.mark.parametrize("text", LOOK_ALIKES)
+@pytest.mark.parametrize("text", LOOK_ALIKES + LOOK_ALIKES_ID)
 def test_everyday_look_alikes_go_to_wayan(text: str) -> None:
     assert screen(text) == "normal"

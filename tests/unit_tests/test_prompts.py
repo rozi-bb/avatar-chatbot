@@ -4,13 +4,14 @@ import pytest
 from langchain_core.messages import HumanMessage
 
 from agent.graph import BALI, Context, bali_now, build_graph
-from agent.prompts import SYSTEM_PROMPT, time_note
+from agent.lines import Language
+from agent.prompts import SYSTEM_PROMPT, language_note, time_note
 from unit_tests.fakes import PromptRecorder, fake_model
 
 
 def test_both_knowledge_files_are_in_the_prompt() -> None:
     assert "HOTEL FACTS:" in SYSTEM_PROMPT and "CULTURE NOTES:" in SYSTEM_PROMPT
-    assert "Pak Bos" in SYSTEM_PROMPT  # from knowledge/hotel.md
+    assert "Warung Sari" in SYSTEM_PROMPT  # from knowledge/hotel.md
     assert "Nyepi" in SYSTEM_PROMPT  # from knowledge/bali-culture.md
 
 
@@ -57,3 +58,19 @@ async def test_the_model_gets_the_given_time_last() -> None:
     system = recorder.calls[0][0].text
     assert system.startswith(SYSTEM_PROMPT)
     assert system.endswith("Wednesday, 21 October 2026, 7:00 pm (19:00, WITA).")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("language", ["en", "id"])
+async def test_the_language_comes_after_the_fixed_prompt(language: Language) -> None:
+    recorder = PromptRecorder()
+    await build_graph(fake_model("[smile] Hi!")).ainvoke(
+        {"messages": [HumanMessage("Hi!")]},
+        {"callbacks": [recorder]},
+        context=Context(language=language),
+    )
+
+    system = recorder.calls[0][0].text
+    assert system.startswith(SYSTEM_PROMPT)
+    assert language_note(language) in system[len(SYSTEM_PROMPT) :]
+    assert system.rstrip().endswith("WITA).")

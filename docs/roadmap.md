@@ -95,3 +95,14 @@ Step 11 (database) isn't planned: sessions live in memory and history lives in L
 - [ ] Monitoring: quality, cost per session against the budget, errors and uptime (steps 24–26)
 
 Step 22 (database backups) isn't needed while there is no database.
+
+## Milestone 9 — Bahasa Indonesia and the guest's words
+
+- [x] Language per session: `Context.language`, `POST /sessions {language}`, fixed lines in English and Indonesian (`lines.py`), and the LANGUAGE note in the prompt
+- [x] Emergency and staff rules in Indonesian too, with look-alikes ("tolong ceritakan…", "orang asli Bali", "jatuh cinta")
+- [x] Kiosk: English / Bahasa Indonesia switch before Start; Ardi HD voice and `id-ID` speech-to-text for Indonesian sessions. 2026-10-26: Ardi sent 92 visemes and every word position for the greeting
+- [x] The guest's words in the subtitle spot while they talk, dimmer until recognised (tried with typed and simulated speech-to-text words; not yet with a real microphone)
+- [x] LangSmith dataset `wayan-bahasa` (17 cases). 2026-10-26: language, format, facts, goodbyes, and safety 100%; grounded 88–100% over six runs. Known slip: in Indonesian, "who runs the hotel?" sometimes calls Kadek Putu Arsa's *cucu* (grandchild) instead of his *anak* (the model's thinking has it right; prompt wording and medium effort only lowered it). Knowledge additions waiting for Rozi's approval: "Putu Arsa is her father" and "He is not part of the Rai family"
+- [ ] Rozi reviews the Indonesian fixed lines (`INDONESIAN` in `lines.py`)
+
+Not done: an Indonesian accent for Wayan, Bali, and Taman Gumitir in English sessions. Brian's HD voice picks its accent per sentence, so `<lang id-ID>`, IPA, and respellings around a name inside an English sentence barely change it (2026-10-26, Rozi's ear and Azure pronunciation scores). Reading each name as its own segment worked better but added pauses and new risks for lip sync and cut-ins, so it was left out.

@@ -61,6 +61,10 @@
               opacity: 0; transition: opacity .25s; pointer-events: none; }
   .subtitle.on { opacity: 1; }
   .subtitle .later { color: rgba(255,255,255,.55); }
+  /* The guest's words, as speech-to-text hears them: in Wayan's subtitle spot, taking
+     turns with it, blue so the two never mix up. Dimmer while still being recognised. */
+  .subtitle.guest { background: rgba(18,52,86,.78); color: #e3f1ff; }
+  .subtitle.guest.interim { color: rgba(227,241,255,.6); }
   .panel { width: var(--w); min-width: min(100%, 360px); display: flex; flex-direction: column; gap: 20px; }
   button { font: inherit; color: var(--text); cursor: pointer; }
   button:disabled { opacity: .45; cursor: default; }
@@ -90,6 +94,10 @@
   .talk { width: 100%; padding: 18px; font-size: 22px; font-weight: 700; border: 0; border-radius: 16px;
           background: var(--accent); color: #1d1d1d; transition: background-color .15s, color .15s; }
   .talk.on { background: #c0392b; color: #fff; }
+  .langs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .langs button { padding: 12px 8px; font-size: 16px; font-weight: 600; border: 1px solid var(--line); border-radius: 12px;
+                  background: var(--panel); transition: border-color .15s, background-color .15s, color .15s; }
+  .langs button[aria-checked="true"] { border-color: var(--accent); background: rgba(245,191,3,.1); color: var(--accent); }
   .state { margin: 0; text-align: center; font-size: 18px; }
   .state::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%;
                    background: var(--muted); vertical-align: middle; }
@@ -125,9 +133,14 @@
     <div class="shadow"></div>
     <canvas id="c" width="840" height="1260"></canvas>
     <div class="subtitle" id="subtitle" aria-hidden="true"></div>
+    <div class="subtitle guest" id="heard" aria-hidden="true"></div>
   </div>
 
   <div class="panel">
+    <div class="langs" id="langs" role="radiogroup" aria-label="Language">
+      <button type="button" role="radio" data-lang="en" aria-checked="true">English</button>
+      <button type="button" role="radio" data-lang="id" aria-checked="false">Bahasa Indonesia</button>
+    </div>
     <button id="talk" class="talk">Start</button>
     <p class="state" id="state" data-state="waiting" role="status" aria-live="polite">Press Start and talk to Wayan</p>
     <form class="typing" id="typing" hidden>
@@ -149,7 +162,12 @@
   //     <prosody> is ignored by HD voices, so there is no pitch setting.
   // Dragon HD temperature (0-1): lower is steadier, higher varies more per take.
   // Pinned at 1, Azure's documented default, which Rozi picked.
-  const VOICE = { id: "en-US-Brian:DragonHDLatestNeural", lang: "en-US", hd: true };
+  // Ardi is the only male Indonesian Dragon HD voice Azure lists for this region; his visemes
+  // were checked in the avatar repo. He reports few word positions (see resolveTags).
+  const VOICES = {
+    en: { id: "en-US-Brian:DragonHDLatestNeural", lang: "en-US", hd: true },
+    id: { id: "id-ID-Ardi:DragonHDLatestNeural", lang: "id-ID", hd: true },
+  };
   const TEMPERATURE = 1;
 
   // Tag -> FaceVM.expression, or a gesture. Only [ketawa] also changes the audio (an HD laugh).
@@ -564,6 +582,7 @@
     if (said.length) el.append(said.join(" "));
     if (said.length && later.length) el.append(" ");
     if (later.length) { const span = document.createElement("span"); span.className = "later"; span.textContent = later.join(" "); el.append(span); }
+    hideHeard();
     el.classList.add("on");
   }
 
@@ -588,13 +607,12 @@
   let ctx = null;
 
   // Speaks one piece of text and resolves when Wayan has finished or was stopped.
-  async function speak(text) {
+  async function speak(text, voice = VOICES.en) {
     stop();
     endGesture();
     hideSubtitle();
     const raw = (text || "").trim();
     if (!raw) return;
-    const voice = VOICE;
     // Created inside the click, otherwise the browser refuses to play it.
     ctx = ctx || new AudioContext();
     ctx.resume();
@@ -916,23 +934,43 @@
   // in order. Words recognised while he talks cut him off, but his own voice
   // coming back through the microphone doesn't. After 45 s of quiet he asks once,
   // after 60 s he says goodbye. Stop, a goodbye, or the silence ends the session.
+  // The guest picks English or Indonesian before Start; the session keeps it to the end.
+  // What the guest says shows in Wayan's subtitle spot while they say it.
   // Add ?type=1 to the address for a text box that stands in for the microphone.
   const IDLE_CHECK_MS = 45000, IDLE_END_MS = 60000;
-  const ERROR_LINE = "[sad] Oops, my brain got a bit tangled. Could you say that again? If it keeps happening, the front desk can help."; // = agent.lines.ERROR
+  const HEARD_CHARS = 48;      // the guest's caption keeps to one line: the latest words
+  const HEARD_LINGER_MS = 6000; // if no reply replaces it, a final caption fades after this
   // Names speech-to-text would otherwise mishear.
   const PHRASES = ["Wayan", "Taman Gumitir", "Gumitir", "Pak Bos", "Warung Sari", "Bale Usada", "Banjar Sekar",
     "frangipani", "Nyepi", "Galungan", "Kuningan", "canang sari", "bebek betutu", "babi guling", "subak", "gamelan",
     "udeng", "suksma", "Om Swastiastu", "ogoh-ogoh", "Kecak", "Legong", "Barong"];
-  const STATES = {
-    waiting: "Press Start and talk to Wayan",
-    starting: "Starting…",
-    listening: "Listening… just talk",
-    thinking: "Wayan is thinking…",
-    speaking: "Wayan is talking (you can cut in)",
+  const UI = {
+    en: {
+      start: "Start", stop: "Stop", typed: "Type what a guest would say (testing)", send: "Send",
+      states: {
+        waiting: "Press Start and talk to Wayan",
+        starting: "Starting…",
+        listening: "Listening… just talk",
+        thinking: "Wayan is thinking…",
+        speaking: "Wayan is talking (you can cut in)",
+      },
+    },
+    id: {
+      start: "Mulai", stop: "Berhenti", typed: "Ketik ucapan tamu (untuk tes)", send: "Kirim",
+      states: {
+        waiting: "Tekan Mulai, lalu ngobrol dengan Wayan",
+        starting: "Memulai…",
+        listening: "Mendengarkan… langsung bicara saja",
+        thinking: "Wayan sedang berpikir…",
+        speaking: "Wayan sedang bicara (boleh dipotong)",
+      },
+    },
   };
   const typing = new URLSearchParams(location.search).has("type");
   const convo = {
     id: null,          // session ID; null while waiting for Start
+    language: "en",    // picked before Start: "en" or "id"
+    errorLine: null,   // said when the backend can't be reached; the backend sends it in the session's language
     state: "waiting",
     turn: 0,           // bumped on every new guest message, cut-in or stop; stale work checks it
     queue: [],         // pieces of the reply received but not yet spoken
@@ -949,15 +987,48 @@
     idleTimer: null,
     idleChecked: false,
     sentAt: null,
+    heardTimer: null,
   };
   window.kioskTimings = []; // seconds from the guest's last word to Wayan's first sound
 
   function setState(state) {
+    const ui = UI[convo.language];
     convo.state = state;
-    $("state").textContent = STATES[state];
+    $("state").textContent = ui.states[state];
     $("state").dataset.state = state;
-    $("talk").textContent = state === "waiting" ? "Start" : "Stop";
+    $("talk").textContent = state === "waiting" ? ui.start : ui.stop;
     $("talk").classList.toggle("on", state !== "waiting");
+    $("langs").querySelectorAll("button").forEach((b) => (b.disabled = state !== "waiting"));
+  }
+
+  function setLanguage(language) {
+    convo.language = language;
+    document.documentElement.lang = language;
+    $("langs").querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.lang === language)));
+    $("typed").placeholder = UI[language].typed;
+    $("typing").querySelector("button").textContent = UI[language].send;
+    setState(convo.state);
+  }
+
+  // The guest's words in the subtitle spot: grey while speech-to-text is still guessing,
+  // white once it settles. Wayan's next subtitle takes the spot back (renderSubtitle).
+  function showHeard(text, final) {
+    const el = $("heard");
+    let words = text.trim();
+    if (words.length > HEARD_CHARS) {
+      const cut = words.indexOf(" ", words.length - HEARD_CHARS);
+      words = "…" + words.slice(cut < 0 ? words.length - HEARD_CHARS : cut + 1);
+    }
+    el.textContent = words;
+    el.classList.toggle("interim", !final);
+    hideSubtitle();
+    el.classList.add("on");
+    clearTimeout(convo.heardTimer);
+    if (final) convo.heardTimer = setTimeout(hideHeard, HEARD_LINGER_MS);
+  }
+  function hideHeard() {
+    clearTimeout(convo.heardTimer);
+    $("heard").classList.remove("on");
   }
 
   function firstSound() {
@@ -977,7 +1048,7 @@
     convo.current = text;
     clearIdle();
     setState("speaking");
-    await speak(text);
+    await speak(text, VOICES[convo.language]);
     if (turn !== convo.turn) return; // cut off or stopped: whoever did that moves on
     convo.speaking = false;
     convo.heard.push(text);
@@ -1034,7 +1105,7 @@
     } catch (err) {
       if (abort.signal.aborted || turn !== convo.turn) return;
       console.warn("[kiosk] reply failed", err);
-      convo.queue.push(ERROR_LINE);
+      convo.queue.push(convo.errorLine);
       pump();
     }
     if (turn !== convo.turn) return;
@@ -1073,6 +1144,7 @@
     const words = text.toLowerCase().match(/[a-z']+/g) || [];
     if (!words.length) return;
     if (convo.state === "speaking" && !typed && isEcho(words)) return;
+    showHeard(text, final);
     convo.idleChecked = false;
     if (convo.state === "listening") armIdle();
     if (convo.state === "speaking" || (convo.state === "thinking" && final)) cutIn();
@@ -1085,7 +1157,7 @@
     if (!res.ok) throw new Error(auth.error || res.statusText);
     const sdk = SpeechSDK;
     const config = sdk.SpeechConfig.fromAuthorizationToken(auth.token, auth.region);
-    config.speechRecognitionLanguage = "en-US";
+    config.speechRecognitionLanguage = VOICES[convo.language].lang;
     const rec = new sdk.SpeechRecognizer(config, sdk.AudioConfig.fromDefaultMicrophoneInput());
     const hints = sdk.PhraseListGrammar.fromRecognizer(rec);
     PHRASES.forEach((phrase) => hints.addPhrase(phrase));
@@ -1134,10 +1206,12 @@
     setStatus("");
     setState("starting");
     try {
-      const res = await fetch("/sessions", { method: "POST" });
+      const res = await fetch("/sessions", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: convo.language }),
+      });
       if (!res.ok) throw new Error(res.statusText);
-      const { session_id, greeting } = await res.json();
-      Object.assign(convo, { id: session_id, idleChecked: false, cut: null });
+      const { session_id, greeting, error_line } = await res.json();
+      Object.assign(convo, { id: session_id, errorLine: error_line, idleChecked: false, cut: null });
       startListening().catch((err) => setStatus("No microphone: " + err.message + (typing ? "" : " (add ?type=1 to type instead)"), true));
       Object.assign(convo, { queue: [greeting], heard: [], replyId: null, replyDone: true, endAfter: false });
       pump();
@@ -1153,6 +1227,7 @@
     clearIdle();
     stopListening();
     stop();
+    hideHeard();
     Object.assign(convo, { id: null, queue: [], heard: [], current: "", speaking: false, cut: null, sentAt: null });
     setState("waiting");
   }
@@ -1164,6 +1239,7 @@
   }
 
   $("talk").onclick = () => (convo.state === "waiting" ? startSession() : stopSession());
+  $("langs").querySelectorAll("button").forEach((b) => (b.onclick = () => setLanguage(b.dataset.lang)));
   $("typing").hidden = !typing;
   $("typing").onsubmit = (e) => {
     e.preventDefault();

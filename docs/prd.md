@@ -1,8 +1,8 @@
 # PRD — Wayan, the Little Host of Taman Gumitir
 
-A voice chatbot that gives the Wayan avatar a brain: guests in the lobby of a fictional Bali hotel talk to him, and he answers in short, cheerful, spoken English.
+A voice chatbot that gives the Wayan avatar a brain: guests in the lobby of a fictional Bali hotel talk to him, and he answers in short, cheerful, spoken English or Bahasa Indonesia.
 
-**Status:** draft for review · **Updated:** 2026-10-24 · **Owner:** Rozi
+**Status:** draft for review · **Updated:** 2026-10-26 · **Owner:** Rozi
 
 | Related | |
 |---|---|
@@ -33,7 +33,7 @@ Wayan is the cartoon little host in the lobby kiosk of Taman Gumitir: a guest pr
 | Hotel guests at the lobby kiosk: all ages, often families with kids | Quick, fun answers without reading instructions; safe for kids |
 | People trying the portfolio demo (recruiters, clients) | See it work within a few minutes, and understand what's behind it |
 
-Guests talk to Wayan in English, and he always replies in English.
+Before pressing Start, the guest picks English or Bahasa Indonesia. Wayan speaks that language for the whole session, whatever language the guest uses; to switch, the guest presses Stop and picks the other one.
 
 ## 4. Scope (v1)
 
@@ -53,8 +53,9 @@ The kiosk page and the backend run this flow; the agent supports it with its rep
 
 | Moment | Behaviour |
 |---|---|
+| Before **Start** | The guest picks English or Bahasa Indonesia; the choice holds until the session ends |
 | Guest presses **Start** | Wayan greets first with a prepared line (no model call, so it's instant), then listens |
-| Guest talks | Hands-free; no button to hold. Their words are sent when they stop talking |
+| Guest talks | Hands-free; no button to hold. Their words appear in the subtitle spot while they talk (dimmer while still being recognised), and are sent when they stop |
 | Guest cuts in while Wayan talks | Wayan stops as soon as speech-to-text recognizes words (not just noise), then listens |
 | About 45 s of silence | Wayan asks once: "Are you still there?" |
 | 60 s of silence | A short goodbye, and the session ends |
@@ -70,7 +71,7 @@ No login, no plans, no payments: this is a portfolio demo (build steps 12, 14, a
 - Bookings, reservations, payments, room service, and complaints: those go to the front desk.
 - Prices of anything.
 - Recommendations or directions to real places outside the hotel (beaches, restaurants, tours): front desk.
-- Replies in any language other than English.
+- Languages other than English and Bahasa Indonesia, and switching language in the middle of a session.
 - Remembering guests across sessions, or personalising for them.
 - Medical, legal, or financial advice.
 - Showing pictures or maps on screen.
@@ -84,7 +85,7 @@ This section becomes the system prompt.
 | | |
 |---|---|
 | Who | Wayan, the hotel's cartoon mascot and little host since 2025: a cheerful, energetic Balinese boy of about ten |
-| Voice | Plain spoken English, because a voice reads it aloud: no markdown, lists, emoji, links, or symbols |
+| Voice | Plain spoken English or Indonesian, because a voice reads it aloud: no markdown, lists, emoji, links, or symbols |
 | Length | One to three short sentences, about 250 characters. Hard limit: 400 characters, the avatar's limit per utterance |
 | Words | Simple enough for a child, never childish to adults. Warm, playful, and polite |
 | Balinese touch | Now and then a Balinese word, explained right away: "suksma, that means thank you!" |
@@ -191,6 +192,8 @@ Fixed lines (spoken through the avatar, tags included):
 | Turn limit | `[smile] Wow, we talked so much! I need to rest my voice now. Press Start anytime to chat again. Bye bye!` |
 | Daily budget used up (online only) | `[smile] I'm resting my voice for today. My friends at the front desk can help you!` |
 
+Every line also has an Indonesian version, used in Indonesian sessions: `INDONESIAN` in `src/agent/lines.py`.
+
 ## 12. Success criteria
 
 Measured with LangSmith evaluations (build step 17) on datasets grown from §15, and from traces.
@@ -205,6 +208,7 @@ Measured with LangSmith evaluations (build step 17) on datasets grown from §15,
 | Normal messages wrongly treated as emergencies | ≤ 5% |
 | Prompt injection and instruction leaks resisted | 100% |
 | Goodbyes end the session | ≥ 95%, with ≤ 5% of sessions ended by mistake |
+| Wayan speaks the session's language (English or Indonesian) | 100% (checked by code) |
 | Persona: Rozi reviews 10 conversations | ≥ 8 of 10 "sounds like Wayan" |
 | Speed: first sentence ready after the guest's message (traces) | ≤ 2 s median, ≤ 4 s p90 |
 | Speed: Wayan starts speaking after the guest stops (kiosk, step 16) | ≤ 3.5 s median |
@@ -220,7 +224,7 @@ Measured with LangSmith evaluations (build step 17) on datasets grown from §15,
 | Session | At most 20 guest turns; a guest's message is cut at 300 characters |
 | Reply | At most 400 characters (the avatar's limit per utterance); target about 250 |
 | Speed | See §12; voice feels broken after a few seconds of silence |
-| Language | English only. The voice is Azure en-US Brian (Dragon HD) |
+| Language | English or Bahasa Indonesia, picked before Start. The voices are Azure Dragon HD: en-US Brian and id-ID Ardi. Speech-to-text listens in the same language |
 | Deploy | Local first, with a laptop and browser as the kiosk; designed to go online later |
 | Data | No personal data collected. Guests' words are stored in LangSmith traces for debugging and evals; audio is never stored |
 | Kiosk | A Chromium-based browser, a microphone, speakers, and a stable internet connection |

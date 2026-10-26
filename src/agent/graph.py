@@ -22,8 +22,8 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.runtime import Runtime
 from langgraph.types import Checkpointer
 
-from agent import lines
-from agent.prompts import SYSTEM_PROMPT, time_note
+from agent.lines import BY_LANGUAGE, Language
+from agent.prompts import SYSTEM_PROMPT, language_note, time_note
 from agent.reply import check_reply
 from agent.screen import MAX_GUEST_CHARS, Route, screen
 
@@ -60,10 +60,12 @@ class Context:
             Recorded in the trace so runs can be filtered by source.
         now: The time Wayan believes it is. None means the current Bali time;
             evals pass a fixed time so their results repeat.
+        language: The language Wayan speaks: "en" or "id", picked on the kiosk.
     """
 
     channel: str = "studio"
     now: datetime | str | None = None
+    language: Language = "en"
 
 
 def bali_now(ctx: Context) -> datetime:
@@ -115,8 +117,12 @@ def build_graph(
     async def wayan(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
         """Reply to the guest as Wayan."""
         ctx = runtime.context or Context()
-        # The time goes last, after everything that is the same for every guest.
-        system = f"{SYSTEM_PROMPT}\n\n{time_note(bali_now(ctx))}"
+        # What changes per session goes last, after everything that is the same
+        # for every guest, so the prompt cache keeps the start.
+        system = (
+            f"{SYSTEM_PROMPT}\n\n{language_note(ctx.language)}\n\n"
+            f"{time_note(bali_now(ctx))}"
+        )
         reply = await (model or default_model()).ainvoke(
             [SystemMessage(system), *state["messages"]],
             config={"metadata": run_metadata(runtime)},
@@ -135,15 +141,16 @@ def build_graph(
     def after_screen(state: State) -> str:
         return "wayan" if state.get("route", "normal") == "normal" else "fixed_reply"
 
-    def fixed_reply(state: State) -> dict[str, Any]:
+    def fixed_reply(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
         """Answer an emergency or a request for a person with the fixed line."""
-        line = lines.EMERGENCY if state.get("route") == "emergency" else lines.STAFF
+        lines = BY_LANGUAGE[(runtime.context or Context()).language]
+        line = lines.emergency if state.get("route") == "emergency" else lines.staff
         return {"messages": [AIMessage(line)], "end_session": False}
 
-    def check(state: State) -> dict[str, Any]:
+    def check(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
         """Hold Wayan's reply to the reply contract before it is spoken."""
         reply = state["messages"][-1]
-        checked = check_reply(reply.text)
+        checked = check_reply(reply.text, (runtime.context or Context()).language)
         # A guest who just asked something isn't leaving, whatever the model
         # thinks. Ending by mistake cuts them off; missing a goodbye costs
         # nothing, because the kiosk's idle timer ends the session anyway.

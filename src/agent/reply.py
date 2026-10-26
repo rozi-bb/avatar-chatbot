@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from agent import lines
+from agent.lines import BY_LANGUAGE, Language
 
 MAX_CHARS = 400
 """The avatar's limit per utterance, tags included."""
@@ -47,17 +47,23 @@ class CheckedReply:
     end_session: bool
 
 
-def check_reply(text: str) -> CheckedReply:
+def check_reply(text: str, language: Language = "en") -> CheckedReply:
     """Make a model reply safe for the avatar to speak.
 
     Keeps the face and gesture tags (lowercased), drops other tags, markdown,
     JSON wrapping, emoji and links, starts the reply with a face tag, and cuts it to
     MAX_CHARS at a sentence end. [bye] becomes `end_session`; a reply with
     [help] is replaced by the fixed emergency line.
+
+    Args:
+        text: The model's reply.
+        language: The session's language, for the fixed lines that replace a
+            reply.
     """
+    lines = BY_LANGUAGE[language]
     names = {name.lower() for name in TAG.findall(text)}
     if "help" in names:
-        return CheckedReply(lines.EMERGENCY, end_session=False)
+        return CheckedReply(lines.emergency, end_session=False)
     end_session = "bye" in names
 
     text = MARKDOWN_LINK.sub(r"\1", text)
@@ -74,7 +80,7 @@ def check_reply(text: str) -> CheckedReply:
     text = TRAILING_TAGS.sub("", text)
 
     if not re.search(r"[A-Za-z0-9]", TAG.sub("", text)):
-        return CheckedReply(lines.GOODBYE if end_session else lines.ERROR, end_session)
+        return CheckedReply(lines.goodbye if end_session else lines.error, end_session)
     if not (match := TAG.match(text)) or match.group(1) not in SPOKEN_TAGS:
         text = f"[smile] {text}"
     return CheckedReply(_cut(text), end_session)

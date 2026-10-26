@@ -12,10 +12,11 @@ from httpx import ASGITransport, AsyncClient
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 
 from agent import lines
+from agent.prompts import language_note
 from agent.reply import check_reply
 from backend.app import create_app
 from backend.settings import Settings
-from unit_tests.fakes import fake_model
+from unit_tests.fakes import PromptRecorder, fake_model
 
 pytestmark = pytest.mark.anyio
 
@@ -89,10 +90,46 @@ async def test_start_greets_first_and_remembers_the_greeting() -> None:
         response = await client.post("/sessions")
         body = response.json()
 
-        assert body["greeting"] in lines.GREETINGS
+        assert body["greeting"] in lines.ENGLISH.greetings
         assert uuid.UUID(body["session_id"]).version == 4
         [greeting] = await thread_messages(client, body["session_id"])
         assert greeting.text == body["greeting"]
+
+
+async def test_an_indonesian_session_speaks_indonesian_throughout() -> None:
+    recorder = PromptRecorder()
+    model = fake_model("[smile] Halo Kak! Aku Wayan.")
+    model.callbacks = [recorder]
+    async with kiosk(model=model) as client:
+        response = await client.post("/sessions", json={"language": "id"})
+        body = response.json()
+        session_id = body["session_id"]
+
+        assert body["greeting"] in lines.INDONESIAN.greetings
+        assert body["error_line"] == lines.INDONESIAN.error
+        await say(client, session_id, "Halo!")
+        assert language_note("id") in recorder.calls[0][0].text
+        found = await say(client, session_id, "Tolong! Anakku hilang!")
+        assert spoken(found) == lines.INDONESIAN.emergency
+        check = await client.post(
+            f"/sessions/{session_id}/idle", json={"stage": "check"}
+        )
+        assert check.json()["text"] == lines.INDONESIAN.still_there
+
+
+async def test_a_session_without_a_language_is_english() -> None:
+    async with kiosk() as client:
+        body = (await client.post("/sessions", json={})).json()
+
+        assert body["greeting"] in lines.ENGLISH.greetings
+        assert body["error_line"] == lines.ENGLISH.error
+
+
+async def test_an_unknown_language_is_refused() -> None:
+    async with kiosk() as client:
+        response = await client.post("/sessions", json={"language": "fr"})
+
+        assert response.status_code == 422
 
 
 async def test_a_reply_streams_as_checked_sentences() -> None:
@@ -129,7 +166,7 @@ async def test_an_emergency_gets_the_fixed_line() -> None:
 
         found = await say(client, session_id, "Help! My daughter is lost!")
 
-        assert spoken(found) == lines.EMERGENCY
+        assert spoken(found) == lines.ENGLISH.emergency
 
 
 async def test_the_turn_limit_says_goodbye_and_ends() -> None:
@@ -139,7 +176,7 @@ async def test_the_turn_limit_says_goodbye_and_ends() -> None:
 
         found = await say(client, session_id, "Tell me more!")
 
-        assert spoken(found) == lines.TURN_LIMIT
+        assert spoken(found) == lines.ENGLISH.turn_limit
         assert found[-1][1]["end_session"] is True
         assert (await client.delete(f"/sessions/{session_id}")).status_code == 404
 
@@ -150,7 +187,7 @@ async def test_a_used_up_budget_makes_wayan_rest() -> None:
 
         found = await say(client, session_id, "Hi!")
 
-        assert spoken(found) == lines.RESTING
+        assert spoken(found) == lines.ENGLISH.resting
 
 
 async def test_silence_first_checks_then_says_goodbye() -> None:
@@ -160,11 +197,13 @@ async def test_silence_first_checks_then_says_goodbye() -> None:
         check = await client.post(
             f"/sessions/{session_id}/idle", json={"stage": "check"}
         )
-        assert check.json() == {"text": lines.STILL_THERE, "end_session": False}
-        assert (await thread_messages(client, session_id))[-1].text == lines.STILL_THERE
+        assert check.json() == {"text": lines.ENGLISH.still_there, "end_session": False}
+        assert (await thread_messages(client, session_id))[
+            -1
+        ].text == lines.ENGLISH.still_there
 
         end = await client.post(f"/sessions/{session_id}/idle", json={"stage": "end"})
-        assert end.json() == {"text": lines.IDLE_GOODBYE, "end_session": True}
+        assert end.json() == {"text": lines.ENGLISH.idle_goodbye, "end_session": True}
         assert (await client.delete(f"/sessions/{session_id}")).status_code == 404
 
 
@@ -218,7 +257,7 @@ async def test_a_model_failure_sends_the_error_line() -> None:
 
         found = await say(client, session_id, "Hi!")
 
-        assert found == [("error", {"text": lines.ERROR})]
+        assert found == [("error", {"text": lines.ENGLISH.error})]
 
 
 async def test_speech_token_comes_from_azure() -> None:

@@ -49,5 +49,5 @@ def test_a_late_help_tag_sends_nothing_more() -> None:
     for token in tokens("[smile] Oh no! [help] "):
         stream.feed(token)
 
-    assert stream.finish(lines.EMERGENCY) == []
+    assert stream.finish(lines.ENGLISH.emergency) == []
     assert stream.diverged

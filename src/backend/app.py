@@ -32,8 +32,8 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 from pydantic import BaseModel, Field
 
-from agent import lines
 from agent.graph import Context, build_graph
+from agent.lines import BY_LANGUAGE, Language
 from agent.reply import check_reply
 from agent.screen import MAX_GUEST_CHARS
 from backend.budget import DailyBudget, reply_cost
@@ -66,6 +66,12 @@ class GuestMessage(BaseModel):
 
     text: str = Field(min_length=1, max_length=MAX_TEXT_CHARS)
     interrupted: Interrupted | None = None
+
+
+class NewSession(BaseModel):
+    """What the guest picked before pressing Start."""
+
+    language: Language = "en"
 
 
 class Idle(BaseModel):
@@ -130,12 +136,13 @@ def create_app(
             raise HTTPException(status_code=404, detail="No such session")
         return session
 
-    async def keep_spoken_part(session_id: str, cut: Interrupted) -> None:
+    async def keep_spoken_part(session: Session, cut: Interrupted) -> None:
         """Make the thread remember only what the guest heard before cutting in."""
         words = re.sub(r"\[[^\]]*\]", "", cut.spoken_text)
         heard = None
         if re.search(r"[A-Za-z0-9]", words):
-            heard = check_reply(cut.spoken_text.strip().rstrip(".!?… ") + "…").text
+            spoken = cut.spoken_text.strip().rstrip(".!?… ") + "…"
+            heard = check_reply(spoken, session.language).text
         said: list[BaseMessage]
         if cut.message_id:
             # Same ID: add_messages replaces the reply, or removes it if nothing was heard.
@@ -148,7 +155,7 @@ def create_app(
             said = [AIMessage(heard)]
         else:
             return
-        await remember(session_id, said)
+        await remember(session.id, said)
 
     async def last_words(session: Session, line: str) -> AsyncIterator[str]:
         """Say a fixed goodbye line and end the session."""
@@ -158,17 +165,18 @@ def create_app(
 
     async def reply_stream(session: Session, text: str) -> AsyncIterator[str]:
         """Run Wayan on the guest's words and stream his checked sentences."""
+        lines = BY_LANGUAGE[session.language]
         if session.turns >= settings.max_turns:
-            async for event in last_words(session, lines.TURN_LIMIT):
+            async for event in last_words(session, lines.turn_limit):
                 yield event
             return
         if budget.used_up():
-            async for event in last_words(session, lines.RESTING):
+            async for event in last_words(session, lines.resting):
                 yield event
             return
         session.turns += 1
 
-        stream = SentenceStream()
+        stream = SentenceStream(session.language)
         index = 0
         final: AnyMessage | None = None
         end_session = False
@@ -177,7 +185,7 @@ def create_app(
             async for item in graph.astream(
                 {"messages": guest},
                 thread(session.id),
-                context=Context(channel="kiosk"),
+                context=Context(channel="kiosk", language=session.language),
                 stream_mode=["messages", "updates"],
             ):
                 mode, data = cast("tuple[str, Any]", item)
@@ -194,10 +202,10 @@ def create_app(
                         end_session = bool(data[node].get("end_session"))
         except Exception:
             log.exception("Wayan's reply failed in session %s", session.id)
-            yield sse("error", {"text": lines.ERROR})
+            yield sse("error", {"text": lines.error})
             return
         if final is None:
-            yield sse("error", {"text": lines.ERROR})
+            yield sse("error", {"text": lines.error})
             return
 
         for piece in stream.finish(final.text):
@@ -229,20 +237,30 @@ def create_app(
         )
 
     @app.post("/sessions")
-    async def start_session() -> dict[str, str]:
-        """Start a session when the guest presses Start; Wayan greets first."""
+    async def start_session(body: NewSession | None = None) -> dict[str, str]:
+        """Start a session when the guest presses Start; Wayan greets first.
+
+        Also returns the session's error line, which the page says itself when
+        the backend can't be reached at all.
+        """
         await clear_abandoned()
-        session = sessions.start()
-        greeting = random.choice(lines.GREETINGS)
+        language = body.language if body else "en"
+        session = sessions.start(language)
+        lines = BY_LANGUAGE[language]
+        greeting = random.choice(lines.greetings)
         await remember(session.id, [AIMessage(greeting)])
-        return {"session_id": session.id, "greeting": greeting}
+        return {
+            "session_id": session.id,
+            "greeting": greeting,
+            "error_line": lines.error,
+        }
 
     @app.post("/sessions/{session_id}/messages")
     async def guest_message(session_id: str, body: GuestMessage) -> StreamingResponse:
         """Stream Wayan's reply to what the guest said."""
         session = live(session_id)
         if body.interrupted:
-            await keep_spoken_part(session_id, body.interrupted)
+            await keep_spoken_part(session, body.interrupted)
         return StreamingResponse(
             reply_stream(session, body.text),
             media_type="text/event-stream",
@@ -252,12 +270,12 @@ def create_app(
     @app.post("/sessions/{session_id}/idle")
     async def idle(session_id: str, body: Idle) -> dict[str, Any]:
         """Return the 45 s "still there?" line, or the 60 s goodbye that ends the session."""
-        live(session_id)
+        lines = BY_LANGUAGE[live(session_id).language]
         if body.stage == "end":
             await end(session_id)
-            return {"text": lines.IDLE_GOODBYE, "end_session": True}
-        await remember(session_id, [AIMessage(lines.STILL_THERE)])
-        return {"text": lines.STILL_THERE, "end_session": False}
+            return {"text": lines.idle_goodbye, "end_session": True}
+        await remember(session_id, [AIMessage(lines.still_there)])
+        return {"text": lines.still_there, "end_session": False}
 
     @app.delete("/sessions/{session_id}", status_code=204)
     async def stop(session_id: str) -> Response:

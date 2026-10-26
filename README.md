@@ -1,6 +1,6 @@
 # Wayan, the Little Host
 
-A voice chatbot for the lobby kiosk of Taman Gumitir, a fictional heritage hotel in Bali. Wayan, an animated Balinese boy, answers guests in short, cheerful, spoken English. A portfolio demo.
+A voice chatbot for the lobby kiosk of Taman Gumitir, a fictional heritage hotel in Bali. Wayan, an animated Balinese boy, answers guests in short, cheerful, spoken English or Bahasa Indonesia, whichever the guest picks. A portfolio demo.
 
 This repo is Wayan's brain: a [LangGraph](https://docs.langchain.com/oss/python/langgraph/overview) agent on DeepSeek, traced in LangSmith. The avatar itself (Rive rig, Azure TTS, lip sync, subtitles) lives in `rozi-bb/wayan-avatar`.
 

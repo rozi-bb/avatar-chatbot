@@ -10,6 +10,8 @@ import time
 import uuid
 from dataclasses import dataclass, field
 
+from agent.lines import Language
+
 
 @dataclass
 class Session:
@@ -19,11 +21,13 @@ class Session:
         id: Random and unguessable; also the LangGraph thread_id.
         turns: Guest messages answered so far.
         last_seen: When the kiosk last used this session (monotonic seconds).
+        language: What Wayan speaks in this session, picked before Start.
     """
 
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     turns: int = 0
     last_seen: float = field(default_factory=time.monotonic)
+    language: Language = "en"
 
 
 class SessionStore:
@@ -34,9 +38,9 @@ class SessionStore:
         self.idle_seconds = idle_minutes * 60
         self.sessions: dict[str, Session] = {}
 
-    def start(self) -> Session:
-        """Open a new session."""
-        session = Session()
+    def start(self, language: Language = "en") -> Session:
+        """Open a new session in the guest's language."""
+        session = Session(language=language)
         self.sessions[session.id] = session
         return session
 

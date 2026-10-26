@@ -18,7 +18,7 @@ from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
 from langsmith import Client, aevaluate
 
 from agent.graph import MODEL_NAME, Context, graph
-from evals import culture, goodbye, hotel, injection, safety
+from evals import bahasa, culture, goodbye, hotel, injection, safety
 from evals import format as format_suite
 
 SUITES = {
@@ -28,6 +28,7 @@ SUITES = {
     "safety": safety,
     "injection": injection,
     "goodbye": goodbye,
+    "bahasa": bahasa,
 }
 
 
@@ -54,7 +55,9 @@ async def target(inputs: dict[str, Any]) -> dict[str, Any]:
         HumanMessage(m["content"]) if m["role"] == "user" else AIMessage(m["content"])
         for m in inputs["messages"]
     ]
-    context = Context(channel="eval", now=inputs.get("now"))
+    context = Context(
+        channel="eval", now=inputs.get("now"), language=inputs.get("language", "en")
+    )
     state = await graph.ainvoke({"messages": messages}, context=context)
     return {"reply": state["messages"][-1].text, "end_session": state["end_session"]}
 

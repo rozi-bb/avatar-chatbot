@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 
+from agent.lines import Language
 from agent.reply import check_reply
 
 SENTENCE_END = re.compile(r"[.!?…][\"'”’)]*\s")
@@ -18,8 +19,9 @@ SENTENCE_END = re.compile(r"[.!?…][\"'”’)]*\s")
 class SentenceStream:
     """Collects tokens and hands back checked, not-yet-sent text."""
 
-    def __init__(self) -> None:
-        """Start with nothing received and nothing sent."""
+    def __init__(self, language: Language = "en") -> None:
+        """Start with nothing received and nothing sent, in the session's language."""
+        self.language: Language = language
         self.raw = ""
         self.sent = ""
         self.diverged = False
@@ -30,7 +32,7 @@ class SentenceStream:
         ends = [m.end() for m in SENTENCE_END.finditer(self.raw)]
         if not ends:
             return []
-        return self._send(check_reply(self.raw[: ends[-1]]).text)
+        return self._send(check_reply(self.raw[: ends[-1]], self.language).text)
 
     def finish(self, final_text: str) -> list[str]:
         """Return whatever of the final, stored reply hasn't been sent yet."""

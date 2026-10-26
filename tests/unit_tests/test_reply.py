@@ -78,23 +78,32 @@ def test_bye_ends_the_session_and_is_not_spoken() -> None:
 
 def test_a_bare_bye_still_says_goodbye() -> None:
     assert check_reply("[bye]") == check_reply(" [BYE] ")
-    assert check_reply("[bye]").text == lines.GOODBYE
+    assert check_reply("[bye]").text == lines.ENGLISH.goodbye
     assert check_reply("[bye]").end_session is True
 
 
 def test_help_is_replaced_by_the_fixed_emergency_line() -> None:
     result = check_reply("[help] Oh no, let me think about that...")
 
-    assert result.text == lines.EMERGENCY
+    assert result.text == lines.ENGLISH.emergency
     assert result.end_session is False
 
 
 def test_an_empty_reply_becomes_the_error_line() -> None:
-    assert check_reply("").text == lines.ERROR
-    assert check_reply("[smile] 😀").text == lines.ERROR
+    assert check_reply("").text == lines.ENGLISH.error
+    assert check_reply("[smile] 😀").text == lines.ENGLISH.error
 
 
-@pytest.mark.parametrize("line", lines.ALL)
-def test_fixed_lines_follow_the_contract(line: str) -> None:
-    assert check_reply(line).text == line
+def test_fixed_lines_come_in_the_session_language() -> None:
+    assert check_reply("[help]", "id").text == lines.INDONESIAN.emergency
+    assert check_reply("[bye]", "id").text == lines.INDONESIAN.goodbye
+    assert check_reply("", "id").text == lines.INDONESIAN.error
+
+
+@pytest.mark.parametrize(
+    ("language", "line"),
+    [(lang, line) for lang, said in lines.BY_LANGUAGE.items() for line in said.all],
+)
+def test_fixed_lines_follow_the_contract(language: lines.Language, line: str) -> None:
+    assert check_reply(line, language).text == line
     assert set(tags(line)) <= SPOKEN_TAGS

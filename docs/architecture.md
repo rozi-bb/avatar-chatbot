@@ -60,7 +60,7 @@ sequenceDiagram
     participant B as Backend
     participant A as Agent
     G->>K: presses Start
-    K->>B: POST /sessions
+    K->>B: POST /sessions {language}
     B-->>K: session_id + greeting (prepared, no model call)
     K->>G: Wayan greets, then listens
     G->>K: talks (hands-free)
@@ -81,7 +81,7 @@ Backend endpoints (build steps 10 and 13):
 
 | Endpoint | Does |
 |---|---|
-| `POST /sessions` | Makes a session ID, stores a random prepared greeting in the new thread, and returns both |
+| `POST /sessions` | Takes the guest's language (`en` or `id`, default `en`), makes a session ID, stores a random prepared greeting in the new thread, and returns both, plus the error line the page says when the backend can't be reached. Every fixed line after that is in the session's language |
 | `POST /sessions/{id}/messages` | Takes the guest's text (and, after a cut-in, what Wayan actually said) and streams the reply as server-sent events |
 | `POST /sessions/{id}/idle` | At 45 s returns the "still there?" line; at 60 s returns the goodbye and ends the session. Both lines are stored in the thread |
 | `DELETE /sessions/{id}` | Stop: ends the session and deletes its thread |
@@ -137,6 +137,8 @@ class Context:
     channel: str = "studio"
     # None means the current Bali time; evals pass a fixed time (milestone 3)
     now: datetime | None = None
+    # The session's language, "en" or "id": picks the LANGUAGE note and the fixed lines
+    language: Literal["en", "id"] = "en"
 ```
 
 ### 4.3 The prompt
@@ -145,14 +147,15 @@ The order matters for DeepSeek's prompt cache, which bills a repeated beginning 
 
 1. Persona and rules (prd.md §6 and §10): fixed
 2. `knowledge/hotel.md` and `knowledge/bali-culture.md`: fixed, read once at startup
-3. The current Bali date, weekday, and time (Asia/Makassar, WITA): changes every run, so it comes last in the system part
-4. The conversation
+3. The session's LANGUAGE note: English or Indonesian, from the runtime context
+4. The current Bali date, weekday, and time (Asia/Makassar, WITA): changes every run, so it comes last in the system part
+5. The conversation
 
 Knowledge goes in whole, without retrieval: the two files are about 2,300 words (roughly 3,000 tokens), so there's nothing to search and nothing a search could miss.
 
 ## 5. The reply contract (agent → kiosk)
 
-- Plain English text with tags. Face and gesture tags are the avatar's English names: `[smile] [neutral] [surprised] [sad] [laugh] [thumbsup]`. Two control tags are never spoken: `[bye]` and `[help]`.
+- Plain text in the session's language, with tags. Face and gesture tags are the avatar's English names: `[smile] [neutral] [surprised] [sad] [laugh] [thumbsup]`. Two control tags are never spoken: `[bye]` and `[help]`.
 - No markdown, emoji, links, or lists. At most 400 characters per reply (the avatar's limit); about 250 is the target.
 - The backend sends one event per checked sentence, so Wayan starts talking after the first sentence instead of after the whole reply. The same check function runs on each streamed sentence and on the final stored message, so what Wayan says and what the thread remembers match.
 
@@ -228,4 +231,5 @@ avatar-chatbot/
 | 7 | Speech in the browser, text on the server | Reuses the avatar's speech code; no audio on our server |
 | 8 | Sessions in memory, deleted when they end | Nothing should outlive a guest's session |
 | 9 | Fixed lines for the greeting, idle, safety, and errors | Instant, predictable, and testable |
-| 10 | English tag names | The prompt and replies are in English; the avatar accepts both |
+| 10 | English tag names in every language | The prompt is in English and the avatar accepts them in any language; only the words change with the session's language |
+| 11 | The guest picks the language before Start, for the whole session | Speech-to-text is most accurate when it knows the language, and the voice must match it. The emergency and staff rules check both languages on every message, whatever the session's language |
