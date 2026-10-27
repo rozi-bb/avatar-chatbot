@@ -2,7 +2,7 @@
 
 A voice chatbot that gives the Wayan avatar a brain: guests in the lobby of a fictional Bali hotel talk to him, and he answers in short, cheerful, spoken English or Bahasa Indonesia.
 
-**Status:** draft for review · **Updated:** 2026-10-26 · **Owner:** Rozi
+**Status:** draft for review · **Updated:** 2026-10-27 · **Owner:** Rozi
 
 | Related | |
 |---|---|
@@ -16,7 +16,7 @@ A voice chatbot that gives the Wayan avatar a brain: guests in the lobby of a fi
 
 ## 1. Summary
 
-Wayan is the cartoon little host in the lobby kiosk of Taman Gumitir: a guest presses Start and talks to him hands-free, and he answers about the hotel's story and facilities and about Balinese culture, or just chats and jokes, with his face and gestures matching what he says.
+Wayan is the cartoon little host in the lobby kiosk of Taman Gumitir: a guest taps a language and talks to him hands-free, and he answers about the hotel's story and facilities and about Balinese culture, or just chats and jokes, with his face and gestures matching what he says.
 
 ## 2. Background
 
@@ -33,7 +33,7 @@ Wayan is the cartoon little host in the lobby kiosk of Taman Gumitir: a guest pr
 | Hotel guests at the lobby kiosk: all ages, often families with kids | Quick, fun answers without reading instructions; safe for kids |
 | People trying the portfolio demo (recruiters, clients) | See it work within a few minutes, and understand what's behind it |
 
-Before pressing Start, the guest picks English or Bahasa Indonesia. Wayan speaks that language for the whole session, whatever language the guest uses; to switch, the guest presses Stop and picks the other one.
+The guest starts by tapping English or Indonesia. Wayan speaks that language for the whole session, whatever language the guest uses; to switch, the guest taps End chat and then the other language.
 
 ## 4. Scope (v1)
 
@@ -53,14 +53,15 @@ The kiosk page and the backend run this flow; the agent supports it with its rep
 
 | Moment | Behaviour |
 |---|---|
-| Before **Start** | The guest picks English or Bahasa Indonesia; the choice holds until the session ends |
-| Guest presses **Start** | Wayan greets first with a prepared line (no model call, so it's instant), then listens |
+| Nobody is chatting | Wayan invites people over in a speech bubble, in English and Indonesian by turns, above one big button per language |
+| Guest taps **English** or **Indonesia** | The session starts in that language, which holds until it ends. Wayan greets first with a prepared line (no model call, so it's instant), then listens |
 | Guest talks | Hands-free; no button to hold. Their words appear in the subtitle spot while they talk (dimmer while still being recognised), and are sent when they stop |
+| Guest taps a suggested question | Same as saying it. Three short ones show under the state (two about the hotel or Bali, one for fun), new ones each time Wayan finishes speaking |
 | Guest cuts in while Wayan talks | Wayan stops as soon as speech-to-text recognizes words (not just noise), then listens |
 | About 45 s of silence | Wayan asks once: "Are you still there?" |
 | 60 s of silence | A short goodbye, and the session ends |
 | Guest says goodbye | Wayan says goodbye back, then the session ends by itself |
-| Guest presses **Stop** | The session ends at once and its memory is cleared |
+| Guest taps **End chat** | The session ends at once and its memory is cleared |
 
 ### Product side
 
@@ -130,8 +131,8 @@ Both files are small (about 2,300 words together), so they go into the system pr
 
 This section decides the checkpointer and `thread_id`.
 
-- One session is one LangGraph thread. Its `thread_id` is a new random ID made when Start is pressed.
-- Memory lasts only for the session: until Stop, 60 s of silence, the guest's goodbye, or the turn limit.
+- One session is one LangGraph thread. Its `thread_id` is a new random ID made when the guest taps a language.
+- Memory lasts only for the session: until End chat, 60 s of silence, the guest's goodbye, or the turn limit.
 - When a session ends, its thread is deleted. Nothing carries over to the next guest.
 - The prepared greeting and the "still there?" line are stored in the thread too, so Wayan knows what he already said.
 - If the guest cuts Wayan off, the thread keeps only the part he actually said (the kiosk reports it).
@@ -191,7 +192,7 @@ Fixed lines (spoken through the avatar, tags included):
 | Emergency | `[neutral] This sounds important! Please go to the front desk in the lobby right now, or ask any staff member. If someone is in danger, call 112.` |
 | Wants a person | `[smile] Sure! My friends at the front desk are here day and night, right here in the lobby. They'll be happy to help.` |
 | Error | `[sad] Oops, my brain got a bit tangled. Could you say that again? If it keeps happening, the front desk can help.` |
-| Turn limit | `[smile] Wow, we talked so much! I need to rest my voice now. Press Start anytime to chat again. Bye bye!` |
+| Turn limit | `[smile] Wow, we talked so much! I need to rest my voice now. Tap English or Indonesia anytime to chat again. Bye bye!` |
 | Daily budget used up (online only) | `[smile] I'm resting my voice for today. My friends at the front desk can help you!` |
 
 Every line also has an Indonesian version, used in Indonesian sessions: `INDONESIAN` in `src/agent/lines.py`.
@@ -226,7 +227,7 @@ Measured with LangSmith evaluations (build step 17) on datasets grown from §15,
 | Session | At most 20 guest turns; a guest's message is cut at 300 characters |
 | Reply | At most 400 characters (the avatar's limit per utterance); target about 250 |
 | Speed | See §12; voice feels broken after a few seconds of silence |
-| Language | English or Bahasa Indonesia, picked before Start. The voices are Azure Dragon HD: en-US Brian and id-ID Ardi. Speech-to-text listens in the same language |
+| Language | English or Bahasa Indonesia, picked by the button that starts the session. The voices are Azure Dragon HD: en-US Brian and id-ID Ardi. Speech-to-text listens in the same language |
 | Deploy | Local first, with a laptop and browser as the kiosk; designed to go online later |
 | Data | No personal data collected. Guests' words are stored in LangSmith traces for debugging and evals; audio is never stored |
 | Kiosk | A Chromium-based browser, a microphone, speakers, and a stable internet connection |
@@ -256,8 +257,10 @@ Changes the kiosk page needed on top of the avatar (build step 16; done in `web/
 
 - Add the hotel's and Balinese words to the avatar's `LOCAL_NAMES` (for example Taman, Gumitir, Swastiastu, suksma) so the voice says them with Indonesian sounds.
 - Queue several `speak()` calls, so sentences can stream in one by one.
-- Start and Stop buttons, the microphone with Azure STT, cut-ins, and the idle timers.
-- "Listening" and "thinking" faces (planned in the avatar PRD's v2). Not done: the page shows the state in text for now.
+- Language buttons that start a session, an End chat button, the microphone with Azure STT, cut-ins, and the idle timers.
+- A layout for the kiosk's portrait screen, about 1:2 (1080 × 2160): Wayan's 2:3 stage fills the width and the controls take the rest, on a panel the colour of the courtyard's sand. Sizes follow the screen width. A 9:16 screen shows a centred 1:2 column.
+- Suggested questions to tap, kept short so three always fit in two rows; a third row would push End chat off the screen, so the page drops a question rather than let that happen.
+- "Listening" and "thinking" faces (planned in the avatar PRD's v2). Not done: the page shows the state as a coloured label with an icon (microphone, dots, sound bars) for now.
 
 ## 15. Initial eval dataset
 

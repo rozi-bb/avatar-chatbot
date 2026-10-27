@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 Language = Literal["en", "id"]
-"""The language a session runs in, picked on the kiosk before Start."""
+"""The language a session runs in: the language button the guest tapped to start."""
 
 
 @dataclass(frozen=True)
@@ -19,7 +19,7 @@ class Lines:
     """One language's fixed lines.
 
     Attributes:
-        greetings: Said when a guest presses Start; one is picked at random.
+        greetings: Said when a guest taps a language to start; one is picked at random.
             Each opens with [salam] Om Swastiastu, the same welcome every time.
         fillers: Said by the kiosk page when a reply takes more than 2 s, so the
             guest isn't left in silence; one is picked at random. Never stored.
@@ -91,7 +91,7 @@ ENGLISH = Lines(
     ),
     turn_limit=(
         "[smile] Wow, we talked so much! I need to rest my voice now. "
-        "Press Start anytime to chat again. Bye bye!"
+        "Tap English or Indonesia anytime to chat again. Bye bye!"
     ),
     resting=(
         "[smile] I'm resting my voice for today. "
@@ -131,7 +131,7 @@ INDONESIAN = Lines(
     ),
     turn_limit=(
         "[smile] Wah, kita sudah ngobrol banyak banget! Suaraku perlu istirahat "
-        "dulu. Tekan Mulai kapan saja buat ngobrol lagi. Dadah!"
+        "dulu. Sentuh English atau Indonesia kapan saja buat ngobrol lagi. Dadah!"
     ),
     resting=(
         "[smile] Hari ini suaraku lagi istirahat. "

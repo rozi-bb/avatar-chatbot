@@ -81,7 +81,7 @@ Step 11 (database) isn't planned: sessions live in memory and history lives in L
 ## Milestone 7 — Kiosk page (step 16)
 
 - [x] Copy the avatar page from `new_avatar_ai/web` into `web/`, served by the backend (the try-out panel became the kiosk panel; `speak(text)` now resolves when Wayan is done)
-- [x] Start and Stop buttons, with the session calls
+- [x] Start and Stop buttons, with the session calls. 2026-10-27: redesigned for the kiosk's 1:2 portrait screen (checked on Rozi's kiosk mockup): a language button starts the session, End chat ends it, three suggested questions to tap, and the state as a coloured label with an icon
 - [ ] Azure STT in continuous mode; cut-ins on recognized words. Built (phrase hints, echo filter, token refresh) and the cut-in path tested with typed words; still needs a try with a real microphone in Chrome, which the Browser pane blocks
 - [x] A sentence queue for `speak()`; after a `[bye]` reply, end once Wayan finishes speaking
 - [x] Idle timers: 45 s "still there?", 60 s goodbye (tried by calling the idle step directly, not by waiting)

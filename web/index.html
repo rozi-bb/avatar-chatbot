@@ -6,16 +6,16 @@
 <title>Wayan · Taman Gumitir</title>
 <style>
   :root {
-    --bg: #1d1d1d; --stage: #282828; --panel: #2a2a2a; --text: #f2f2f2; --muted: #a8a8a8;
-    --line: #4a4a4a; --accent: #f5bf03; --error: #ff8a80;
+    --bg: #cbb89c; --stage: #fbf5e9; --panel: #fffdf8; --text: #3b2b1d; --muted: #5e4b38;
+    --line: #e4d6bf; --accent: #e0a800; --leaf: #2e7d4f; --sky: #2f6fa3; --error: #c0392b;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 16px system-ui, sans-serif; }
-  /* The stage is as big as fits: 560px wide at most, and never taller than the window. */
-  main { --w: min(100%, 560px, calc((100svh - 32px) * 2 / 3)); margin: 0 auto; padding: 16px 16px 40px;
-         display: flex; flex-direction: column; align-items: center; gap: 22px; }
-  .stage { position: relative; width: var(--w); aspect-ratio: 2 / 3; background: rgb(107,168,210); border-radius: 24px;
-           overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,.4); }
+  /* The kiosk screen is portrait, about 1:2. Wayan's 2:3 stage takes the full width and the
+     controls take the rest. A wider window (or a 9:16 screen) gets a centred 1:2 column. */
+  main { width: min(100vw, 100svh / 2); height: 100svh; margin: 0 auto; display: flex; flex-direction: column;
+         container-type: inline-size; overflow: hidden; }
+  .stage { position: relative; width: 100%; flex: none; aspect-ratio: 2 / 3; background: rgb(107,168,210); overflow: hidden; }
   /* The courtyard is split into layers by scripts/bg_layers.py. The picture is 1331 x 2048; the scene keeps
      that shape and is centred, which is what background-size: cover did on the 2:3 stage. */
   .scene { position: absolute; left: 0; top: 50%; width: 100%; aspect-ratio: 1331 / 2048; transform: translateY(-50%); }
@@ -53,11 +53,11 @@
   canvas { position: absolute; left: 50%; bottom: 2%; width: var(--wayan, 66%); aspect-ratio: 2 / 3; transform: translateX(-50%); }
   /* Subtitle on the ground under the sandals. One line clears the soles; a second would cover the sandals,
      so pieces are cut to one line on a laptop (a phone may still wrap one, evenly).
-     Text size follows the stage width (cqw), 15px on a phone, 22px on the full 560px stage. */
+     Text size follows the stage width (cqw): 15px on a phone, about 42px on a 1080px kiosk screen. */
   .stage { container-type: inline-size; }
   .subtitle { position: absolute; left: 50%; bottom: 2.5%; translate: -50% 0; width: max-content; max-width: 88%;
               padding: .35em .8em; border-radius: 14px; background: rgba(20,20,20,.68); backdrop-filter: blur(6px);
-              font-size: clamp(15px, 3.9cqw, 22px); line-height: 1.4; font-weight: 600; text-align: center; text-wrap: balance; color: #fff;
+              font-size: clamp(15px, 3.9cqw, 60px); line-height: 1.4; font-weight: 600; text-align: center; text-wrap: balance; color: #fff;
               opacity: 0; transition: opacity .25s; pointer-events: none; }
   .subtitle.on { opacity: 1; }
   .subtitle .later { color: rgba(255,255,255,.55); }
@@ -65,7 +65,10 @@
      turns with it, blue so the two never mix up. Dimmer while still being recognised. */
   .subtitle.guest { background: rgba(18,52,86,.78); color: #e3f1ff; }
   .subtitle.guest.interim { color: rgba(227,241,255,.6); }
-  .panel { width: var(--w); min-width: min(100%, 360px); display: flex; flex-direction: column; gap: 20px; }
+  /* The panel carries on the courtyard's sand (#d8c9b4, the ground at the stage's bottom edge), so it
+     reads as the ground Wayan stands on, not a separate box. */
+  .panel { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 2.4cqw;
+           padding: 2cqw 7cqw 6cqw; background: linear-gradient(#d8c9b4, var(--bg)); }
   button { font: inherit; color: var(--text); cursor: pointer; }
   button:disabled { opacity: .45; cursor: default; }
   .moves { display: flex; flex-direction: column; gap: 16px; }
@@ -90,29 +93,71 @@
   .actions { display: flex; gap: 8px; margin-left: auto; }
   .actions button { padding: 10px 20px; border-radius: 10px; font-weight: 600; border: 1px solid var(--line); background: transparent; }
   #speak { background: var(--accent); border-color: var(--accent); color: #1d1d1d; }
-  /* Kiosk controls: one big Start/Stop button and the conversation state. */
-  .talk { width: 100%; padding: 18px; font-size: 22px; font-weight: 700; border: 0; border-radius: 16px;
-          background: var(--accent); color: #1d1d1d; transition: background-color .15s, color .15s; }
-  .talk.on { background: #c0392b; color: #fff; }
-  .langs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .langs button { padding: 12px 8px; font-size: 16px; font-weight: 600; border: 1px solid var(--line); border-radius: 12px;
-                  background: var(--panel); transition: border-color .15s, background-color .15s, color .15s; }
-  .langs button[aria-checked="true"] { border-color: var(--accent); background: rgba(245,191,3,.1); color: var(--accent); }
-  .state { margin: 0; text-align: center; font-size: 18px; }
-  .state::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%;
-                   background: var(--muted); vertical-align: middle; }
-  .state[data-state="listening"]::before { background: #4caf50; animation: pulse 1.2s ease-in-out infinite; }
-  .state[data-state="thinking"]::before { background: var(--accent); animation: pulse .6s ease-in-out infinite; }
-  .state[data-state="speaking"]::before { background: #64b5f6; }
-  @keyframes pulse { 50% { opacity: .3; } }
-  @media (prefers-reduced-motion: reduce) { .state::before { animation: none !important; } }
+  /* Kiosk controls. Sizes follow the screen width (cqw); 1cqw is 10.8px on a 1080px kiosk screen.
+     Waiting: a welcome and one big button per language (a tap starts the chat in that language).
+     In a chat: the state with its icon, a few questions to tap, and a quiet End button. */
+  .panel .welcome, .panel .live { display: flex; flex-direction: column; gap: 2cqw; }
+  .panel .welcome { gap: 4.4cqw; }
+  .panel[data-state="waiting"] .live, .panel:not([data-state="waiting"]) .welcome { display: none; }
+  .hello { margin: 0; text-align: center; font-size: 6.4cqw; font-weight: 800; line-height: 1.15; }
+  .hello small { display: block; margin-top: 1.2cqw; font-size: 3.4cqw; font-weight: 600; color: var(--muted); }
+  .langs { display: grid; grid-template-columns: 1fr 1fr; gap: 3.4cqw; }
+  .langs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1cqw;
+                  min-height: max(72px, 23cqw); padding: 2cqw; border: 0; border-radius: 5cqw; color: #fff;
+                  font-size: 5.6cqw; font-weight: 800; box-shadow: 0 1.2cqw 0 rgba(0,0,0,.2); transition: transform .1s, box-shadow .1s; }
+  .langs button small { font-size: 3.2cqw; font-weight: 600; opacity: .9; }
+  .langs button[data-lang="en"] { background: var(--sky); }
+  .langs button[data-lang="id"] { background: var(--leaf); }
+  .langs button:active { transform: translateY(.6cqw); box-shadow: 0 .4cqw 0 rgba(0,0,0,.18); }
+  .state { align-self: center; display: inline-flex; align-items: center; gap: 2.2cqw; margin: 0; padding: 1.8cqw 4.4cqw 1.8cqw 3.4cqw;
+           border-radius: 99px; font-size: 4.4cqw; font-weight: 700; background: #efe6d6; color: var(--text); }
+  .state[data-state="listening"] { background: #dcefe2; color: #1f5a37; }
+  .state[data-state="thinking"] { background: #fbecc0; color: #7a5a00; }
+  .state[data-state="speaking"] { background: #dbe9f5; color: #1f4f7a; }
+  /* The icon: a microphone while listening, three dots while thinking, sound bars while speaking. */
+  .icon { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: .7cqw; width: 6cqw; height: 6cqw; }
+  .icon svg { display: none; width: 100%; height: 100%; }
+  .icon i { width: 1.2cqw; height: 1.2cqw; border-radius: 99px; background: currentColor; }
+  .state[data-state="listening"] .icon svg { display: block; }
+  .state[data-state="listening"] .icon i { display: none; }
+  .state[data-state="listening"] .icon::after { content: ""; position: absolute; inset: -1cqw; border-radius: 50%;
+                                                border: .5cqw solid currentColor; animation: ring 1.6s ease-out infinite; }
+  .state[data-state="thinking"] .icon i { animation: blink 1.2s ease-in-out infinite; }
+  .state[data-state="speaking"] .icon i { height: 4.4cqw; animation: bar .9s ease-in-out infinite; }
+  .icon i:nth-child(2) { animation-delay: .2s !important; }
+  .icon i:nth-child(3) { animation-delay: .4s !important; }
+  @keyframes ring { from { transform: scale(.7); opacity: .8; } to { transform: scale(1.25); opacity: 0; } }
+  @keyframes blink { 0%, 100% { opacity: .25; } 40% { opacity: 1; } }
+  @keyframes bar { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+  @media (prefers-reduced-motion: reduce) { .icon i, .icon::after { animation: none !important; } }
+  .asks { display: flex; flex-direction: column; gap: 1.2cqw; }
+  .asks p { margin: 0; text-align: center; font-size: 3cqw; font-weight: 600; color: var(--muted); }
+  .asks div { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.8cqw; }
+  .asks button { min-height: max(48px, 8.4cqw); padding: 1.4cqw 3.4cqw; border: .3cqw solid var(--line); border-radius: 99px;
+                 background: var(--panel); font-size: 3.4cqw; font-weight: 600; }
+  .asks button:active { background: #f3ead9; }
+  /* Terracotta like the flower pots: apart from the white question chips, but softer than an alarm red. */
+  .end { align-self: center; min-height: max(48px, 9cqw); padding: 1.2cqw 6cqw; border: .45cqw solid #c47a5f; border-radius: 99px;
+         background: #f4d8cc; color: #8a3a24; font-size: 3.6cqw; font-weight: 700; }
+  .end:active { background: #ecc6b6; }
+  /* While waiting, Wayan invites people over with a speech bubble, in both languages by turns. */
+  .invite { position: absolute; left: 50%; top: 13%; translate: -50% 0; max-width: 80%; padding: .6em 1.1em;
+            border-radius: 1.2em; background: #fff; color: var(--text); font-size: clamp(15px, 4.6cqw, 60px); font-weight: 800;
+            text-align: center; box-shadow: 0 .8cqw 2cqw rgba(0,0,0,.15); transition: opacity .4s; }
+  .invite::after { content: ""; position: absolute; left: 50%; bottom: -.9em; translate: -50% 0; border: .5em solid transparent;
+                   border-top: .55em solid #fff; }
+  .invite[hidden] { display: block; opacity: 0; pointer-events: none; }
   .typing { display: flex; gap: 8px; }
   .typing[hidden] { display: none; }
   .typing input { flex: 1; min-width: 0; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
                   background: var(--panel); color: var(--text); }
   .typing button { padding: 10px 16px; border: 1px solid var(--line); border-radius: 10px; background: transparent; }
-  .status { min-height: 1.4em; font-size: 14px; margin: -8px 0 0; text-align: center; color: var(--muted); }
-  .status.error { color: var(--error); font-weight: 600; }
+  /* Problems show at the top of the stage, over the sky: the panel below is full during a chat. */
+  .status { position: absolute; left: 50%; top: 4%; translate: -50% 0; width: max-content; max-width: 86%; margin: 0;
+            padding: .4em .9em; border-radius: 1em; background: rgba(20,20,20,.7); color: #fff;
+            font-size: clamp(13px, 3cqw, 34px); font-weight: 600; line-height: 1.35; text-align: center; }
+  .status:empty { display: none; }
+  .status.error { background: rgba(138,58,36,.9); }
 </style>
 </head>
 <body>
@@ -134,20 +179,34 @@
     <canvas id="c" width="840" height="1260"></canvas>
     <div class="subtitle" id="subtitle" aria-hidden="true"></div>
     <div class="subtitle guest" id="heard" aria-hidden="true"></div>
+    <p class="invite" id="invite">Hi! Come and talk to me</p>
+    <p class="status" id="status" role="status"></p>
   </div>
 
-  <div class="panel">
-    <div class="langs" id="langs" role="radiogroup" aria-label="Language">
-      <button type="button" role="radio" data-lang="en" aria-checked="true">English</button>
-      <button type="button" role="radio" data-lang="id" aria-checked="false">Bahasa Indonesia</button>
+  <div class="panel" id="panel" data-state="waiting">
+    <div class="welcome">
+      <p class="hello">Talk with Wayan<small>Ngobrol dengan Wayan · pick a language / pilih bahasa</small></p>
+      <div class="langs" id="langs">
+        <button type="button" data-lang="en">English<small>Tap to talk</small></button>
+        <button type="button" data-lang="id">Indonesia<small>Sentuh untuk ngobrol</small></button>
+      </div>
     </div>
-    <button id="talk" class="talk">Start</button>
-    <p class="state" id="state" data-state="waiting" role="status" aria-live="polite">Press Start and talk to Wayan</p>
+    <div class="live">
+      <p class="state" id="state" data-state="waiting" role="status" aria-live="polite">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <rect x="8.5" y="3" width="7" height="12" rx="3.5" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+          </svg><i></i><i></i><i></i>
+        </span>
+        <span id="stateText"></span>
+      </p>
+      <div class="asks"><p id="asksLabel"></p><div id="asks"></div></div>
+      <button type="button" class="end" id="end"></button>
+    </div>
     <form class="typing" id="typing" hidden>
       <input id="typed" autocomplete="off" placeholder="Type what a guest would say (testing)" aria-label="Guest's words">
       <button>Send</button>
     </form>
-    <p class="status" id="status" role="status"></p>
   </div>
 </main>
 
@@ -455,7 +514,13 @@
   requestAnimationFrame(gazeFrame); // first frame runs after the script, once `session` exists
 
   // ---- UI -------------------------------------------------------------------
-  const setStatus = (msg, isError = false) => { $("status").textContent = msg; $("status").className = "status" + (isError ? " error" : ""); };
+  const setStatus = (msg, isError = false) => {
+    $("status").textContent = msg;
+    $("status").className = "status" + (isError ? " error" : "");
+    delete $("status").dataset.mic;
+  };
+  // A microphone problem lasts the whole chat, so Wayan starting to speak doesn't clear it.
+  const setMicProblem = (msg) => { setStatus(msg, true); $("status").dataset.mic = "1"; };
   // English HD voices can switch accent mid-sentence with <lang>.
   const canLocalize = (v) => v.hd && v.lang.startsWith("en");
 
@@ -688,7 +753,7 @@
     if (!s.started) {
       s.started = true;
       s.startAt = s.nextAt = now + LEAD_S;
-      setStatus("");
+      if (!$("status").dataset.mic) setStatus("");
       firstSound();
       requestAnimationFrame(() => frame(s));
     } else if (s.nextAt < now + 0.02) {
@@ -946,28 +1011,36 @@
   const PHRASES = ["Wayan", "Taman Gumitir", "Gumitir", "Pak Bos", "Warung Sari", "Bale Usada", "Banjar Sekar",
     "frangipani", "Nyepi", "Galungan", "Kuningan", "canang sari", "bebek betutu", "babi guling", "subak", "gamelan",
     "udeng", "suksma", "Om Swastiastu", "ogoh-ogoh", "Kecak", "Legong", "Barong"];
+  // Questions to tap instead of saying them: two about the hotel or Bali, one for fun.
+  // Only questions; the answers still come from the knowledge. Kept short so any three
+  // fit in two rows: a third row pushes End chat off a 1:2 screen.
   const UI = {
     en: {
-      start: "Start", stop: "Stop", typed: "Type what a guest would say (testing)", send: "Send",
+      end: "✕  End chat", asks: "Try asking", typed: "Type what a guest would say (testing)", send: "Send",
       states: {
-        waiting: "Press Start and talk to Wayan",
+        waiting: "",
         starting: "Starting…",
-        listening: "Listening… just talk",
+        listening: "Go ahead, I'm listening",
         thinking: "Wayan is thinking…",
-        speaking: "Wayan is talking (you can cut in)",
+        speaking: "Wayan is talking",
       },
+      facts: ["Breakfast time?", "Pool hours?", "Book a massage?", "What's canang sari?", "Things to do here?", "Wi-Fi?"],
+      fun: ["Tell me a joke!", "A funny story!", "Give me a riddle!"],
     },
     id: {
-      start: "Mulai", stop: "Berhenti", typed: "Ketik ucapan tamu (untuk tes)", send: "Kirim",
+      end: "✕  Selesai", asks: "Coba tanya", typed: "Ketik ucapan tamu (untuk tes)", send: "Kirim",
       states: {
-        waiting: "Tekan Mulai, lalu ngobrol dengan Wayan",
+        waiting: "",
         starting: "Memulai…",
-        listening: "Mendengarkan… langsung bicara saja",
+        listening: "Silakan bicara, aku dengar",
         thinking: "Wayan sedang berpikir…",
-        speaking: "Wayan sedang bicara (boleh dipotong)",
+        speaking: "Wayan sedang bicara",
       },
+      facts: ["Jam sarapan?", "Jam kolam renang?", "Pesan pijat?", "Apa itu canang sari?", "Kegiatan di sini?", "Wi-Fi-nya?"],
+      fun: ["Tebak-tebakan dong!", "Cerita lucu dong!", "Lelucon dong!"],
     },
   };
+  const INVITES = ["Hi! Come and talk to me", "Hai! Ayo ngobrol sama aku"];
   const typing = new URLSearchParams(location.search).has("type");
   const convo = {
     id: null,          // session ID; null while waiting for Start
@@ -999,21 +1072,41 @@
 
   function setState(state) {
     const ui = UI[convo.language];
+    // New questions each time Wayan has finished a reply, never under the guest's finger mid-turn.
+    if (state === "listening" && convo.state === "speaking") showAsks();
     convo.state = state;
-    $("state").textContent = ui.states[state];
+    $("stateText").textContent = ui.states[state];
     $("state").dataset.state = state;
-    $("talk").textContent = state === "waiting" ? ui.start : ui.stop;
-    $("talk").classList.toggle("on", state !== "waiting");
-    $("langs").querySelectorAll("button").forEach((b) => (b.disabled = state !== "waiting"));
+    $("panel").dataset.state = state;
+    $("invite").hidden = state !== "waiting";
   }
 
   function setLanguage(language) {
+    const ui = UI[language];
     convo.language = language;
     document.documentElement.lang = language;
-    $("langs").querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.lang === language)));
-    $("typed").placeholder = UI[language].typed;
-    $("typing").querySelector("button").textContent = UI[language].send;
+    $("end").textContent = ui.end;
+    $("asksLabel").textContent = ui.asks;
+    $("typed").placeholder = ui.typed;
+    $("typing").querySelector("button").textContent = ui.send;
     setState(convo.state);
+  }
+
+  function showAsks() {
+    const ui = UI[convo.language];
+    const pick = (list, n) => [...list].sort(() => Math.random() - 0.5).slice(0, n);
+    const asks = pick([...pick(ui.facts, 2), ...pick(ui.fun, 1)], 3);
+    $("asks").replaceChildren(...asks.map((text) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = text;
+      b.onclick = () => heardWords(text, true, true);
+      return b;
+    }));
+    // A third row would push End chat off the screen (a narrower screen, a bigger font):
+    // drop questions from the end until two rows are left.
+    const rows = () => new Set([...$("asks").children].map((b) => b.offsetTop)).size;
+    while ($("asks").children.length > 1 && rows() > 2) $("asks").lastElementChild.remove();
   }
 
   // The guest's words in the subtitle spot: grey while speech-to-text is still guessing,
@@ -1189,7 +1282,7 @@
     PHRASES.forEach((phrase) => hints.addPhrase(phrase));
     rec.recognizing = (_, e) => heardWords(e.result.text, false);
     rec.recognized = (_, e) => { if (e.result.reason === sdk.ResultReason.RecognizedSpeech) heardWords(e.result.text, true); };
-    rec.canceled = (_, e) => { if (convo.recognizer === rec) setStatus("The microphone stopped: " + (e.errorDetails || e.reason), true); };
+    rec.canceled = (_, e) => { if (convo.recognizer === rec) setMicProblem("The microphone stopped: " + (e.errorDetails || e.reason)); };
     convo.recognizer = rec;
     // Tokens last 10 minutes; a long chat needs a fresh one.
     convo.tokenTimer = setInterval(async () => {
@@ -1231,6 +1324,7 @@
     ctx.resume();
     setStatus("");
     setState("starting");
+    showAsks(); // after the panel shows the chat controls, so the chips can be measured
     try {
       const res = await fetch("/sessions", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: convo.language }),
@@ -1238,7 +1332,7 @@
       if (!res.ok) throw new Error(res.statusText);
       const { session_id, greeting, error_line, fillers } = await res.json();
       Object.assign(convo, { id: session_id, errorLine: error_line, fillers, idleChecked: false, cut: null });
-      startListening().catch((err) => setStatus("No microphone: " + err.message + (typing ? "" : " (add ?type=1 to type instead)"), true));
+      startListening().catch((err) => setMicProblem("No microphone: " + err.message + (typing ? "" : " (add ?type=1 to type instead)")));
       Object.assign(convo, { queue: [greeting], heard: [], replyId: null, replyDone: true, endAfter: false });
       pump();
     } catch (err) {
@@ -1255,6 +1349,7 @@
     stop();
     hideHeard();
     clearTimeout(convo.fillerTimer);
+    if ($("status").dataset.mic) setStatus("");
     Object.assign(convo, { id: null, queue: [], heard: [], current: "", speaking: false, filler: false, cut: null, sentAt: null });
     setState("waiting");
   }
@@ -1265,8 +1360,19 @@
     if (id) fetch(`/sessions/${id}`, { method: "DELETE" }).catch(() => {});
   }
 
-  $("talk").onclick = () => (convo.state === "waiting" ? startSession() : stopSession());
-  $("langs").querySelectorAll("button").forEach((b) => (b.onclick = () => setLanguage(b.dataset.lang)));
+  $("end").onclick = stopSession;
+  $("langs").querySelectorAll("button").forEach((b) => (b.onclick = () => {
+    if (convo.state !== "waiting") return;
+    setLanguage(b.dataset.lang);
+    startSession();
+  }));
+  setLanguage(convo.language);
+  let invite = 0;
+  setInterval(() => {
+    if (convo.state !== "waiting") return;
+    invite = (invite + 1) % INVITES.length;
+    $("invite").textContent = INVITES[invite];
+  }, 4000);
   $("typing").hidden = !typing;
   $("typing").onsubmit = (e) => {
     e.preventDefault();

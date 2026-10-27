@@ -34,11 +34,9 @@ def azure(status: int = 200, token: str = "token-123") -> httpx.MockTransport:
 def kiosk(
     *replies: str, model: GenericFakeChatModel | None = None, **settings: Any
 ) -> AsyncClient:
+    settings.setdefault("web_dir", Path("/no/kiosk/page"))
     config = Settings(
-        azure_speech_key=FAKE_KEY,
-        azure_speech_region="southeastasia",
-        web_dir=Path("/no/kiosk/page"),
-        **settings,
+        azure_speech_key=FAKE_KEY, azure_speech_region="southeastasia", **settings
     )
     app = create_app(model or fake_model(*replies), config, speech_transport=azure())
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://kiosk")
@@ -268,6 +266,16 @@ async def test_speech_token_comes_from_azure() -> None:
 
         assert response.json() == {"token": "token-123", "region": "southeastasia"}
         assert response.headers["cache-control"] == "no-store"
+
+
+async def test_the_kiosk_page_is_never_served_from_a_stale_cache(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "index.html").write_text("<p>Wayan</p>")
+    async with kiosk(web_dir=tmp_path) as client:
+        response = await client.get("/")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-cache"
 
 
 # Security

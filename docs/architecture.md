@@ -2,7 +2,7 @@
 
 How the chatbot is built, and why. What we build and for whom: [prd.md](prd.md). Order of work: [roadmap.md](roadmap.md).
 
-**Status:** v1 built through roadmap milestone 7: the graph (§4.2), the backend (§3), and the kiosk page. Not yet deployed. **Updated:** 2026-10-24
+**Status:** v1 built through roadmap milestone 7: the graph (§4.2), the backend (§3), and the kiosk page. Not yet deployed. **Updated:** 2026-10-27
 
 ---
 
@@ -29,8 +29,8 @@ flowchart LR
 
 | Part | Job | Where |
 |---|---|---|
-| Kiosk page | Start and Stop buttons, microphone and speech-to-text, cut-in detection, idle timers; plays Wayan's sentences through the avatar | `web/index.html`, built from `new_avatar_ai/web` |
-| Backend | One FastAPI server: serves the kiosk page, hands out short-lived Azure speech tokens (ported from the avatar's `server.py`), runs sessions and the chat stream, enforces limits | `src/backend/` |
+| Kiosk page | Language buttons that start a session, suggested questions, End chat, microphone and speech-to-text, cut-in detection, idle timers; plays Wayan's sentences through the avatar | `web/index.html`, built from `new_avatar_ai/web` |
+| Backend | One FastAPI server: serves the kiosk page (with `Cache-Control: no-cache`, so a changed page is never served from a stale browser copy), hands out short-lived Azure speech tokens (ported from the avatar's `server.py`), runs sessions and the chat stream, enforces limits | `src/backend/` |
 | Agent | The LangGraph graph that decides what Wayan says | `src/agent/` |
 | DeepSeek | The model | DeepSeek API |
 | LangSmith | Traces and evaluations | Cloud, project `avatar-chatbot` |
@@ -59,7 +59,7 @@ sequenceDiagram
     participant K as Kiosk page
     participant B as Backend
     participant A as Agent
-    G->>K: presses Start
+    G->>K: taps English or Indonesia
     K->>B: POST /sessions {language}
     B-->>K: session_id + greeting (prepared, no model call)
     K->>G: Wayan greets, then listens
@@ -71,11 +71,11 @@ sequenceDiagram
     K->>G: Wayan speaks, sentence by sentence
     Note over G,K: The guest cuts in: the kiosk stops the audio, cancels the stream,<br/>and sends the new words plus what Wayan actually said
     Note over K,B: 45 s of silence: "still there?" · 60 s: goodbye, session ends
-    K->>B: DELETE /sessions/{id} (Stop)
+    K->>B: DELETE /sessions/{id} (End chat)
     B->>A: delete the thread
 ```
 
-The kiosk's states: `waiting` (Start is shown) → `greeting` → `listening` ⇄ `thinking` → `speaking` → `listening` … → `ending` → `waiting`. A cut-in moves `speaking` straight back to `listening`.
+The kiosk's states: `waiting` (the language buttons are shown) → `greeting` → `listening` ⇄ `thinking` → `speaking` → `listening` … → `ending` → `waiting`. A cut-in moves `speaking` straight back to `listening`.
 
 Backend endpoints (build steps 10 and 13):
 
@@ -84,7 +84,7 @@ Backend endpoints (build steps 10 and 13):
 | `POST /sessions` | Takes the guest's language (`en` or `id`, default `en`), makes a session ID, stores a random prepared greeting in the new thread, and returns both, plus the error line the page says when the backend can't be reached. Every fixed line after that is in the session's language |
 | `POST /sessions/{id}/messages` | Takes the guest's text (and, after a cut-in, what Wayan actually said) and streams the reply as server-sent events |
 | `POST /sessions/{id}/idle` | At 45 s returns the "still there?" line; at 60 s returns the goodbye and ends the session. Both lines are stored in the thread |
-| `DELETE /sessions/{id}` | Stop: ends the session and deletes its thread |
+| `DELETE /sessions/{id}` | End chat: ends the session and deletes its thread |
 | `GET /api/speech-token` | A 10-minute Azure Speech token; the key never leaves the server |
 | `GET /health` | For monitoring |
 
@@ -212,7 +212,7 @@ avatar-chatbot/
 ├── knowledge/         hotel.md · bali-culture.md (prompt content)
 ├── src/agent/         graph.py · prompts.py (from the LangGraph template)
 ├── src/backend/       FastAPI app: endpoints, sentence stream, sessions, tokens, budget
-├── web/               kiosk page (avatar + Start/Stop + speech-to-text)
+├── web/               kiosk page (avatar + language buttons, questions, End chat + speech-to-text)
 ├── evals/             LangSmith suites, evaluators, persona review
 ├── tests/             unit_tests/ · integration_tests/
 ├── langgraph.json     where the graph is, for `langgraph dev`
@@ -233,4 +233,4 @@ avatar-chatbot/
 | 8 | Sessions in memory, deleted when they end | Nothing should outlive a guest's session |
 | 9 | Fixed lines for the greeting, idle, safety, and errors | Instant, predictable, and testable |
 | 10 | English tag names in every language | The prompt is in English and the avatar accepts them in any language; only the words change with the session's language |
-| 11 | The guest picks the language before Start, for the whole session | Speech-to-text is most accurate when it knows the language, and the voice must match it. The emergency and staff rules check both languages on every message, whatever the session's language |
+| 11 | The guest picks the language by tapping it to start, for the whole session | Speech-to-text is most accurate when it knows the language, and the voice must match it. The emergency and staff rules check both languages on every message, whatever the session's language |

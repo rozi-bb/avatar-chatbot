@@ -31,6 +31,7 @@ from langchain_core.messages import (
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 from pydantic import BaseModel, Field
+from starlette.types import Scope
 
 from agent.graph import Context, build_graph
 from agent.lines import BY_LANGUAGE, Language
@@ -69,7 +70,7 @@ class GuestMessage(BaseModel):
 
 
 class NewSession(BaseModel):
-    """What the guest picked before pressing Start."""
+    """The language button the guest tapped to start."""
 
     language: Language = "en"
 
@@ -78,6 +79,20 @@ class Idle(BaseModel):
     """Which idle moment the kiosk reached: 45 s ("check") or 60 s ("end")."""
 
     stage: Literal["check", "end"]
+
+
+class KioskPage(StaticFiles):
+    """The kiosk page and its files, checked with the server on every load.
+
+    Without this the browser keeps using an old copy of the page for a while
+    after it changes. Unchanged files still come back as a cheap 304.
+    """
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        """Serve a file as StaticFiles does, but never from a stale cache."""
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 
 
 def sse(event: str, data: dict[str, Any]) -> str:
@@ -238,7 +253,7 @@ def create_app(
 
     @app.post("/sessions")
     async def start_session(body: NewSession | None = None) -> dict[str, Any]:
-        """Start a session when the guest presses Start; Wayan greets first.
+        """Start a session when the guest taps a language; Wayan greets first.
 
         Also returns the session's error line, which the page says itself when
         the backend can't be reached at all, and the fillers it says while a
@@ -281,13 +296,13 @@ def create_app(
 
     @app.delete("/sessions/{session_id}", status_code=204)
     async def stop(session_id: str) -> Response:
-        """End a session when the guest presses Stop."""
+        """End a session when the guest taps End chat."""
         live(session_id)
         await end(session_id)
         return Response(status_code=204)
 
     if settings.web_dir.is_dir():
-        app.mount("/", StaticFiles(directory=settings.web_dir, html=True), name="kiosk")
+        app.mount("/", KioskPage(directory=settings.web_dir, html=True), name="kiosk")
     return app
 
 
