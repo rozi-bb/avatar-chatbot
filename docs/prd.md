@@ -53,7 +53,7 @@ The kiosk page and the backend run this flow; the agent supports it with its rep
 
 | Moment | Behaviour |
 |---|---|
-| Nobody is chatting | Wayan invites people over in a speech bubble, in English and Indonesian by turns, above one big button per language |
+| Nobody is chatting | Wayan invites people over in a speech bubble, above one big button per language. This welcome is in English only |
 | Guest taps **English** or **Indonesia** | The session starts in that language, which holds until it ends. Wayan greets first with a prepared line (no model call, so it's instant), then listens |
 | Guest talks | Hands-free; no button to hold. Their words appear in the subtitle spot while they talk (dimmer while still being recognised), and are sent when they stop |
 | Guest taps a suggested question | Same as saying it. Three short ones show under the state (two about the hotel or Bali, one for fun), new ones each time Wayan finishes speaking |

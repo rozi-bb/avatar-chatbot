@@ -67,8 +67,9 @@
   .subtitle.guest.interim { color: rgba(227,241,255,.6); }
   /* The panel carries on the courtyard's sand (#d8c9b4, the ground at the stage's bottom edge), so it
      reads as the ground Wayan stands on, not a separate box. */
-  .panel { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 2.4cqw;
-           padding: 2cqw 7cqw 6cqw; background: linear-gradient(#d8c9b4, var(--bg)); }
+  /* "safe": if the controls ever don't fit, they spill below rather than up behind the stage. */
+  .panel { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: safe center; gap: 2.4cqw;
+           padding: 2cqw 7cqw 4.5cqw; background: linear-gradient(#d8c9b4, var(--bg)); }
   button { font: inherit; color: var(--text); cursor: pointer; }
   button:disabled { opacity: .45; cursor: default; }
   .moves { display: flex; flex-direction: column; gap: 16px; }
@@ -103,7 +104,7 @@
   .hello small { display: block; margin-top: 1.2cqw; font-size: 3.4cqw; font-weight: 600; color: var(--muted); }
   .langs { display: grid; grid-template-columns: 1fr 1fr; gap: 3.4cqw; }
   .langs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1cqw;
-                  min-height: max(72px, 23cqw); padding: 2cqw; border: 0; border-radius: 5cqw; color: #fff;
+                  min-height: 23cqw; padding: 2cqw; border: 0; border-radius: 5cqw; color: #fff;
                   font-size: 5.6cqw; font-weight: 800; box-shadow: 0 1.2cqw 0 rgba(0,0,0,.2); transition: transform .1s, box-shadow .1s; }
   .langs button small { font-size: 3.2cqw; font-weight: 600; opacity: .9; }
   .langs button[data-lang="en"] { background: var(--sky); }
@@ -131,16 +132,18 @@
   @keyframes bar { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
   @media (prefers-reduced-motion: reduce) { .icon i, .icon::after { animation: none !important; } }
   .asks { display: flex; flex-direction: column; gap: 1.2cqw; }
+  .asks:has(> div:empty) { display: none; }
   .asks p { margin: 0; text-align: center; font-size: 3cqw; font-weight: 600; color: var(--muted); }
   .asks div { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.8cqw; }
-  .asks button { min-height: max(48px, 8.4cqw); padding: 1.4cqw 3.4cqw; border: .3cqw solid var(--line); border-radius: 99px;
+  .asks button { min-height: 8.4cqw; padding: 1.4cqw 3.4cqw; border: .3cqw solid var(--line); border-radius: 99px;
                  background: var(--panel); font-size: 3.4cqw; font-weight: 600; }
   .asks button:active { background: #f3ead9; }
   /* Terracotta like the flower pots: apart from the white question chips, but softer than an alarm red. */
-  .end { align-self: center; min-height: max(48px, 9cqw); padding: 1.2cqw 6cqw; border: .45cqw solid #c47a5f; border-radius: 99px;
+  .end { align-self: center; min-height: 9cqw; padding: 1.2cqw 6cqw; border: .45cqw solid #c47a5f; border-radius: 99px;
          background: #f4d8cc; color: #8a3a24; font-size: 3.6cqw; font-weight: 700; }
   .end:active { background: #ecc6b6; }
-  /* While waiting, Wayan invites people over with a speech bubble, in both languages by turns. */
+  /* While waiting, Wayan invites people over with a speech bubble. The welcome is in English only;
+     the chat itself is in whichever language the guest taps. */
   .invite { position: absolute; left: 50%; top: 13%; translate: -50% 0; max-width: 80%; padding: .6em 1.1em;
             border-radius: 1.2em; background: #fff; color: var(--text); font-size: clamp(15px, 4.6cqw, 60px); font-weight: 800;
             text-align: center; box-shadow: 0 .8cqw 2cqw rgba(0,0,0,.15); transition: opacity .4s; }
@@ -185,10 +188,10 @@
 
   <div class="panel" id="panel" data-state="waiting">
     <div class="welcome">
-      <p class="hello">Talk with Wayan<small>Ngobrol dengan Wayan · pick a language / pilih bahasa</small></p>
+      <p class="hello">Talk with Wayan<small>Pick a language to start</small></p>
       <div class="langs" id="langs">
         <button type="button" data-lang="en">English<small>Tap to talk</small></button>
-        <button type="button" data-lang="id">Indonesia<small>Sentuh untuk ngobrol</small></button>
+        <button type="button" data-lang="id">Indonesia<small>Tap to talk</small></button>
       </div>
     </div>
     <div class="live">
@@ -1040,7 +1043,6 @@
       fun: ["Tebak-tebakan dong!", "Cerita lucu dong!", "Lelucon dong!"],
     },
   };
-  const INVITES = ["Hi! Come and talk to me", "Hai! Ayo ngobrol sama aku"];
   const typing = new URLSearchParams(location.search).has("type");
   const convo = {
     id: null,          // session ID; null while waiting for Start
@@ -1103,10 +1105,10 @@
       b.onclick = () => heardWords(text, true, true);
       return b;
     }));
-    // A third row would push End chat off the screen (a narrower screen, a bigger font):
-    // drop questions from the end until two rows are left.
-    const rows = () => new Set([...$("asks").children].map((b) => b.offsetTop)).size;
-    while ($("asks").children.length > 1 && rows() > 2) $("asks").lastElementChild.remove();
+    // Questions that don't fit would push End chat off the screen (a shorter window, a third
+    // row of chips): drop them from the end until the panel fits.
+    const panel = $("panel");
+    while ($("asks").children.length && panel.scrollHeight > panel.clientHeight) $("asks").lastElementChild.remove();
   }
 
   // The guest's words in the subtitle spot: grey while speech-to-text is still guessing,
@@ -1367,12 +1369,6 @@
     startSession();
   }));
   setLanguage(convo.language);
-  let invite = 0;
-  setInterval(() => {
-    if (convo.state !== "waiting") return;
-    invite = (invite + 1) % INVITES.length;
-    $("invite").textContent = INVITES[invite];
-  }, 4000);
   $("typing").hidden = !typing;
   $("typing").onsubmit = (e) => {
     e.preventDefault();
