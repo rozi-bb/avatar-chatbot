@@ -19,7 +19,7 @@ from agent.graph import (
 )
 from agent.prompts import SYSTEM_PROMPT
 from agent.screen import MAX_GUEST_CHARS
-from unit_tests.fakes import PromptRecorder, fake_model
+from unit_tests.fakes import FakeJudge, PromptRecorder, fake_model
 
 
 def test_graph_builds_without_an_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -285,3 +285,50 @@ async def test_only_a_joke_request_thinks_minimally() -> None:
     joke_prompt, question_prompt = (call[0].text for call in recorder.calls)
     assert "JOKE TOPIC" in joke_prompt
     assert "JOKE TOPIC" not in question_prompt
+
+
+@pytest.mark.anyio
+async def test_jev_catches_an_emergency_the_rules_miss() -> None:
+    judge = FakeJudge(someone_hurt=0.95)
+
+    # No scripted replies: the test fails if Wayan's model is called.
+    result = await build_graph(fake_model(), judge=judge).ainvoke(
+        {"messages": [HumanMessage("My husband just collapsed and isn't moving")]}
+    )
+
+    assert result["route"] == "emergency"
+    assert result["messages"][-1].text == lines.ENGLISH.emergency
+
+
+@pytest.mark.anyio
+async def test_jev_catches_a_request_for_staff_the_rules_miss() -> None:
+    result = await build_graph(fake_model(), judge=FakeJudge(wants_staff=0.9)).ainvoke(
+        {"messages": [HumanMessage("Bisa panggilin orang hotel?")]},
+        context=Context(language="id"),
+    )
+
+    assert result["route"] == "staff"
+    assert result["messages"][-1].text == lines.INDONESIAN.staff
+
+
+@pytest.mark.anyio
+async def test_jev_is_not_asked_when_the_rules_already_decide() -> None:
+    judge = FakeJudge()
+
+    result = await build_graph(fake_model(), judge=judge).ainvoke(
+        {"messages": [HumanMessage("Call an ambulance please")]}
+    )
+
+    assert result["route"] == "emergency"
+    assert judge.asked == []
+
+
+@pytest.mark.anyio
+async def test_jev_reads_the_message_cut_to_size() -> None:
+    judge = FakeJudge()
+
+    await build_graph(fake_model("[smile] Wow!"), judge=judge).ainvoke(
+        {"messages": [HumanMessage("tell me " * 100)]}
+    )
+
+    assert len(judge.asked[0]) == MAX_GUEST_CHARS

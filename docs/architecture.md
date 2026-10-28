@@ -2,7 +2,7 @@
 
 How the chatbot is built, and why. What we build and for whom: [prd.md](prd.md). Order of work: [roadmap.md](roadmap.md).
 
-**Status:** v1 built through roadmap milestone 7: the graph (§4.2), the backend (§3), and the kiosk page. Not yet deployed. **Updated:** 2026-10-27
+**Status:** v1 built through roadmap milestone 7: the graph (§4.2), the backend (§3), and the kiosk page. Not yet deployed. **Updated:** 2026-10-28
 
 ---
 
@@ -23,6 +23,7 @@ flowchart LR
     API -- "Wayan's sentences (SSE)" --> AV
     API --> G
     G <--> DS["DeepSeek<br/>deepseek-flash"]
+    G <--> TS["TypeSafe<br/>Jev"]
     G -. traces .-> LS["LangSmith"]
     TOK -. "10-minute token" .-> Kiosk
 ```
@@ -33,6 +34,7 @@ flowchart LR
 | Backend | One FastAPI server: serves the kiosk page (with `Cache-Control: no-cache`, so a changed page is never served from a stale browser copy), hands out short-lived Azure speech tokens (ported from the avatar's `server.py`), runs sessions and the chat stream, enforces limits | `src/backend/` |
 | Agent | The LangGraph graph that decides what Wayan says | `src/agent/` |
 | DeepSeek | The model | DeepSeek API |
+| TypeSafe Jev | The screen's second look: answers typed yes/no questions about a guest's message, no text | TypeSafe API |
 | LangSmith | Traces and evaluations | Cloud, project `avatar-chatbot` |
 
 Speech stays in the browser, as it already does in the avatar: the server only ever sees text. That keeps audio off our server and reuses the avatar's tested speech code.
@@ -100,7 +102,7 @@ Build step 8 started with one node, `wayan`; milestone 2 added `check_reply`, mi
 
 ```mermaid
 flowchart LR
-    S((START)) --> SC["screen_message<br/>code"]
+    S((START)) --> SC["screen_message<br/>rules + Jev"]
     SC -- "emergency / staff" --> FX["fixed_reply<br/>code"]
     SC -- normal --> W["wayan<br/>LLM"]
     W --> CK["check_reply<br/>code"]
@@ -110,14 +112,20 @@ flowchart LR
 
 | Node | Type | Job |
 |---|---|---|
-| `screen_message` | Code (rules) | Tidies the guest's text (trims it, cuts it at 300 characters) and spots clear emergencies and requests for a person with keyword rules, before any model call. Writes `route` |
+| `screen_message` | Code (rules) + Jev | Tidies the guest's text (trims it, cuts it at 300 characters) and spots emergencies and requests for a person before Wayan's model: keyword rules first, then Jev for what the rules let through. Writes `route` |
 | `fixed_reply` | Code | Adds the fixed line for that route (prd.md §11) |
 | `wayan` | LLM | Writes Wayan's reply from the persona, the knowledge pack, the current Bali time, and the conversation |
 | `check_reply` | Code | Enforces the reply contract (§5): keeps known tags only, strips markdown, emoji, and links, cuts at 400 characters at a sentence end, turns `[bye]` into `end_session` (unless the guest's message asked something: the idle timer can end that session, a mistaken end can't be undone), and swaps a `[help]` reply for the fixed emergency line |
 
 The route is decided inside `screen_message`; the edge only reads `route` from the state.
 
-Why keyword rules rather than a classifier model for the screen: a second model call would add about a second to every turn, and voice can't afford that. The model is the backstop: its prompt tells it to answer only `[help]` when someone may be in danger, and `check_reply` turns that into the fixed line. If the safety evals show misses, we add a fast classifier as in CareDesk. The rules need care, because "help" also appears in normal questions ("can you help me find the spa?"); the evals include such look-alikes.
+The screen has three layers:
+
+1. **Keyword rules** (`screen.py`), in English and Indonesian. Instant and offline, so a clear "call an ambulance" never waits on a network call. They need care, because "help" also appears in normal questions ("can you help me find the spa?"); the tests and evals include such look-alikes.
+2. **Jev** (TypeSafe's decision model), only for messages the rules let through. One request asks four yes/no questions (Nouls): is someone hurt, is there a danger, is a person missing, does the guest want staff (`screen_questions.py`, with the threshold). Code picks the route: any emergency question at 0.7 or above wins, then staff. Jev returns probabilities, not text, so there is nothing to parse. It catches what no keyword list can ("my husband just collapsed", "bisa panggilin orang hotel?"). If Jev fails, has no key, or takes over 1.5 s, the message goes on as normal and a warning is logged.
+3. **Wayan's model**, the backstop: its prompt tells it to answer only `[help]` when someone may be in danger, and `check_reply` turns that into the fixed line.
+
+Jev was first ruled out because a second model call would add about a second to every turn. Measured 2026-10-28, Jev takes 0.35 s median (0.5 s p90) on a warm connection and about 1 s for the first call, so it now runs on every message the rules pass. Over 35 test messages it routed all of them right, 13 of them messages the rules missed. The model is pinned (`jev-1.14.0`), because the threshold was tuned on it.
 
 State, shared by all nodes:
 
@@ -196,6 +204,8 @@ Knowledge goes in whole, without retrieval: the two files are about 2,300 words 
 
 The model is created on first use (`default_model()`), so the graph imports without an API key and unit tests use a fake model (the CareDesk pattern).
 
+The screen's Jev (`default_judge()`, settings in `screen_questions.py`): model `jev-1.14.0`, pinned; one request with four Nouls per message; yes at 0.7 or above; no retries and a 1.5 s limit (`JEV_WAIT`). The client is created on first use too, and again on a new event loop, because its connections belong to the loop that opened them. Unit tests get a fake that answers "no" to everything.
+
 ## 9. Tracing
 
 - LangSmith is on from day one (build step 7): `LANGSMITH_TRACING=true`, project `avatar-chatbot`, US region (so no `LANGSMITH_ENDPOINT`, as in CareDesk).
@@ -210,7 +220,7 @@ avatar-chatbot/
 ├── README.md          how to run it
 ├── docs/              prd.md · architecture.md · roadmap.md
 ├── knowledge/         hotel.md · bali-culture.md (prompt content)
-├── src/agent/         graph.py · prompts.py (from the LangGraph template)
+├── src/agent/         graph.py · prompts.py (from the LangGraph template) · screen.py · screen_questions.py
 ├── src/backend/       FastAPI app: endpoints, sentence stream, sessions, tokens, budget
 ├── web/               kiosk page (avatar + language buttons, questions, End chat + speech-to-text)
 ├── evals/             LangSmith suites, evaluators, persona review
@@ -227,7 +237,7 @@ avatar-chatbot/
 | 2 | Knowledge goes into the prompt whole; no retrieval | Two small files: nothing to miss, and cheap with prompt caching |
 | 3 | Control tags (`[bye]`, `[help]`) instead of tool calls | They stream in order with the words, and need no extra round trip before Wayan speaks |
 | 4 | The reply contract is enforced in code | A prompt can be talked around; code can't (the CareDesk lesson) |
-| 5 | A rules screen before the model, with the model as backstop | No extra model call, so no extra wait, on every turn |
+| 5 | A rules screen, then Jev for what the rules let through, with the model as backstop (first rules only; Jev added 2026-10-28) | Rules are instant and work offline; Jev catches paraphrases in about 0.35 s; a failed or slow Jev call never holds up the turn |
 | 6 | Thinking on at low effort (first decided off, reversed after measuring) | Right answers about time cost only ~0.25 s more; thinking isn't kept in the thread |
 | 7 | Speech in the browser, text on the server | Reuses the avatar's speech code; no audio on our server |
 | 8 | Sessions in memory, deleted when they end | Nothing should outlive a guest's session |

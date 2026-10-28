@@ -34,7 +34,8 @@ uv run python -m evals.run            # LangSmith evaluations (real API calls)
 - `src/agent/graph.py`: the model setup, state, context, nodes, and the graph (`build_graph`)
 - `src/agent/prompts.py`: Wayan's system prompt
 - `src/agent/reply.py`: the reply contract (`check_reply`)
-- `src/agent/screen.py`: the message screen (emergency and staff rules)
+- `src/agent/screen.py`: the message screen (emergency and staff rules, then Jev)
+- `src/agent/screen_questions.py`: the questions the screen asks Jev, and the threshold
 - `src/agent/lines.py`: Wayan's fixed lines
 - `src/backend/`: the FastAPI backend: `app.py` (endpoints), `stream.py` (checked sentences), `sessions.py`, `speech.py` (Azure tokens), `budget.py`, `settings.py`
 - `evals/`: one module per LangSmith suite, shared evaluators and LLM judges (`checks.py`), the runner (`run.py`), and persona review transcripts (`review.py`, `review/`)

@@ -1,10 +1,12 @@
-"""Fakes shared by the unit tests: a scripted model and a prompt recorder."""
+"""Fakes shared by the unit tests: a scripted model, a prompt recorder, and Jev."""
 
 from typing import Any
 
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, BaseMessage
+
+from agent.screen_questions import QUESTIONS
 
 
 class PromptRecorder(AsyncCallbackHandler):
@@ -28,3 +30,18 @@ class PromptRecorder(AsyncCallbackHandler):
 
 def fake_model(*replies: str) -> GenericFakeChatModel:
     return GenericFakeChatModel(messages=iter([AIMessage(r) for r in replies]))
+
+
+class FakeJudge:
+    """Stands in for Jev: fixed answers, and a record of what it was asked.
+
+    Questions not given an answer get 0.0, a clear "no".
+    """
+
+    def __init__(self, **answers: float) -> None:
+        self.answers = {q: answers.get(q, 0.0) for q in QUESTIONS}
+        self.asked: list[str] = []
+
+    async def __call__(self, text: str) -> dict[str, float]:
+        self.asked.append(text)
+        return self.answers

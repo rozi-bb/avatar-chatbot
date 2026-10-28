@@ -28,7 +28,7 @@ from langgraph.types import Checkpointer
 from agent.lines import BY_LANGUAGE, Language
 from agent.prompts import SYSTEM_PROMPT, language_note, time_note
 from agent.reply import check_reply
-from agent.screen import MAX_GUEST_CHARS, Route, screen
+from agent.screen import MAX_GUEST_CHARS, Jev, Judge, Route, screen, second_look
 
 MODEL_NAME = "deepseek-flash"
 
@@ -146,9 +146,16 @@ def default_model() -> BaseChatModel:
     )
 
 
+@cache
+def default_judge() -> Judge:
+    """Return Jev, the screen's second look, shared so its connection stays warm."""
+    return Jev()
+
+
 def build_graph(
     model: BaseChatModel | None = None,
     checkpointer: Checkpointer = None,
+    judge: Judge | None = None,
 ) -> CompiledStateGraph[State, Context, State, State]:
     """Build Wayan's graph.
 
@@ -156,6 +163,8 @@ def build_graph(
         model: Chat model for Wayan's replies. Defaults to DeepSeek; tests pass a fake.
         checkpointer: Only for running the graph outside `langgraph dev`, which
             stores threads itself.
+        judge: The screen's second look at messages the keyword rules let
+            through. Defaults to Jev; unit tests get a fake from conftest.
     """
 
     async def wayan(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
@@ -177,13 +186,17 @@ def build_graph(
         )
         return {"messages": [reply]}
 
-    def screen_message(state: State) -> dict[str, Any]:
-        """Cut the guest's message to size and pick its route, before any model call."""
+    async def screen_message(state: State) -> dict[str, Any]:
+        """Cut the guest's message to size and pick its route, before Wayan's model."""
         message = state["messages"][-1]
-        update: dict[str, Any] = {"route": screen(message.text)}
+        text = message.text[:MAX_GUEST_CHARS]
+        update: dict[str, Any] = {}
         if isinstance(message, HumanMessage) and len(message.text) > MAX_GUEST_CHARS:
-            cut = message.text[:MAX_GUEST_CHARS]
-            update["messages"] = [message.model_copy(update={"content": cut})]
+            update["messages"] = [message.model_copy(update={"content": text})]
+        route = screen(message.text)
+        if route == "normal":
+            route = await second_look(text, judge or default_judge())
+        update["route"] = route
         return update
 
     def after_screen(state: State) -> str:

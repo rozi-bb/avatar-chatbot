@@ -49,6 +49,7 @@ Build steps 12 (login), 14 (plans; only its limits part is kept) and 15 (payment
 ## Milestone 4 — Guardrails and safety (step 9.4)
 
 - [x] `screen_message` node: tidy and cut the text, keyword rules write `route` (`src/agent/screen.py`)
+- [x] Jev as the screen's second look, for messages the keyword rules let through (`screen_questions.py`). 2026-10-28: 35 of 35 test messages routed right, 13 of them missed by the rules; 0.35 s median, 0.5 s p90 when warm. A failed or slow call (over 1.5 s) lets the message through
 - [x] `fixed_reply` node, with all fixed lines (prd.md §11) in one module (`src/agent/lines.py`)
 - [x] The `[help]` backstop in the prompt and in `check_reply`
 - [x] English only: an Indonesian greeting got "Selamat pagi! Kabar baik, suksma…" (2026-10-24) Fixed in the prompt; checked by `wayan-injection`
