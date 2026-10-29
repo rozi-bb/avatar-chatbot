@@ -127,6 +127,8 @@ The screen has three layers:
 
 Jev was first ruled out because a second model call would add about a second to every turn. Measured 2026-10-28, Jev takes 0.35 s median (0.5 s p90) on a warm connection and about 1 s for the first call, so it now runs on every message the rules pass. Over 35 test messages it routed all of them right, 13 of them messages the rules missed. The model is pinned (`jev-1.14.0`), because the threshold was tuned on it.
 
+Open points: Jev's wait comes before Wayan's model starts, so every normal message now reaches its first sentence about 0.35 s later (on top of the 1.01 s median in §8). And 35 test messages are not many: the 0.7 threshold should be checked again on real guest conversations, and on the safety evals, before it is trusted.
+
 State, shared by all nodes:
 
 ```python
@@ -159,7 +161,7 @@ The order matters for DeepSeek's prompt cache, which bills a repeated beginning 
 4. The current Bali date, weekday, and time (Asia/Makassar, WITA): changes every run, so it comes last in the system part
 5. The conversation
 
-Knowledge goes in whole, without retrieval: the two files are about 2,300 words (roughly 3,000 tokens), so there's nothing to search and nothing a search could miss.
+Knowledge goes in whole, without retrieval: the two files are about 2,300 words (roughly 3,000 tokens), so there's nothing to search and nothing a search could miss. The whole system prompt, persona and notes included, is about 17,000 characters (roughly 4,300 tokens, measured 2026-10-28): a few percent of the model's context, and the part that is the same for every guest comes first, so the prompt cache keeps it.
 
 ## 5. The reply contract (agent → kiosk)
 
